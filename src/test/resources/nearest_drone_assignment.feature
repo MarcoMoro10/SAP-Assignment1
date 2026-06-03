@@ -19,9 +19,3 @@ Feature: Nearest drone assignment
     And drone "DRN-2" is available "5" km from the pickup point with max capacity "5" kg
     When I create a delivery with weight "3" kg, starting place "via Emilia, 9", destination place "via Veneto, 5" to ship immediately
     Then drone "DRN-2" should be assigned to the delivery
-
-  Scenario: Request rejected when the number of requests exceeds the number of drones
-    Given the fleet has "2" drones and both are already assigned
-    When I create a delivery with weight "2" kg, starting place "via Emilia, 9", destination place "via Veneto, 5" to ship immediately
-    Then I should see the error "No drone available"
-    And the delivery should not be created

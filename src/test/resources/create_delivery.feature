@@ -4,8 +4,9 @@ Feature: Create a delivery request
   so that I can ship a package from one place to another.
 
   Background:
-    Given I am on the delivery creation page
-    And I am logged in as "user-1" with password "Secret#123"
+    Given I am logged in as "user-1" with password "Secret#123"
+    And I am on the delivery creation page
+    And deliveries can be scheduled at most "7" days in advance
 
   Scenario: Successful immediate delivery creation
     When I create a delivery with weight "2" kg, starting place "via Emilia, 9", destination place "via Veneto, 5" to ship immediately
@@ -17,8 +18,13 @@ Feature: Create a delivery request
     Then I should see a confirmation that the delivery has been created and receive its identifier
     And a drone should be reserved for "2026-06-10" at "10:00"
 
-  Scenario: Delivery creation fails with invalid shipping time
+  Scenario: Delivery creation fails when the shipping time exceeds the scheduling horizon
     When I create a delivery with weight "2" kg, starting place "via Emilia, 9", destination place "via Veneto, 5" to ship in "30" days
+    Then I should see the error "Shipping time exceeds the maximum scheduling horizon"
+    And the delivery should not be created
+
+  Scenario: Delivery creation fails with a shipping time in the past
+    When I create a delivery with weight "2" kg, starting place "via Emilia, 9", destination place "via Veneto, 5" to ship on "2020-01-01" at "10:00"
     Then I should see the error "Invalid shipping time"
     And the delivery should not be created
 
