@@ -4,7 +4,7 @@
 
 Personas:
 - **Sender**: user that want to send a package.
-- **Admin**: user that tracks all drones and manage the deliveries.
+- **Admin**: user that tracks all drones, manage the deliveries and manage users.
 
 ---
 
@@ -132,16 +132,4 @@ so that I can administer who has access to the service.
 As a Sender,
 I want to use the system from any modern web browser
 so that I can request deliveries without installing anything.
-```
-
-```
-As a Sender,
-I want the nearest available drone to be assigned to my immediate delivery
-so that the package is picked up as quickly as possible.
-```
-
-```
-As a Sender,
-I want my request to be rejected when no drone can satisfy the constraints
-so that I am not given a delivery promise the system cannot keep.
 ```
