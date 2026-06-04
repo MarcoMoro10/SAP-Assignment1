@@ -3,8 +3,8 @@
 **Drone Delivery System**
 
 Personas:
-- **Sender**: user that want to send a package.
-- **Admin**: user that tracks all drones, manage the deliveries and manage users.
+- **Sender**: user that wants to send a package.
+- **Admin**: already-registered user that monitors all drones and manages delivery scheduling.
 
 ---
 
@@ -19,7 +19,13 @@ so that I can request drone deliveries.
 ```
 As a registered user,
 I want to log into the system
-so that I can create deliveries, track them and access my profile.
+so that I can create deliveries and track them.
+```
+
+```
+As an Admin,
+I want to log into the system with my existing account
+so that I can manage scheduling and monitor the fleet.
 ```
 
 ---
@@ -112,16 +118,6 @@ so that the daily route of every drone is organised efficiently.
 As an Admin,
 I want a scheduled delivery to reserve a drone for the requested time slot
 so that the drone is available to pick up the package when the Sender requested it.
-```
-
----
-
-## User Management (Admin)
-
-```
-As an Admin,
-I want to manage users and their profiles
-so that I can administer who has access to the service.
 ```
 
 ---
