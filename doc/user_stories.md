@@ -34,7 +34,7 @@ so that I can manage scheduling and monitor the fleet.
 
 ```
 As a logged-in Sender,
-I want to create a delivery request specifying pickup and destination addresses
+I want to create a delivery request specifying pickup location and destination
 so that my package can be shipped from one place to another.
 ```
 
