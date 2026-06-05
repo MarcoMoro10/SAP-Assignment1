@@ -53,12 +53,22 @@
     - **Destination**: the place where the package must be delivered
     - **Requested Date/Time**: when the delivery should take place; it can be **Immediate** (as soon as possible) or **Scheduled** (a specific future date/time)
     - **Deadline**: the maximum amount of time within which the delivery must be completed
+- **Estimated Time Remaining (ETR)**
+  - the value object that expresses how much time is still expected before a delivery in progress is completed
+  - it is computed as a function of the drone's **current position**, the delivery **destination** and the drone's travel speed
+  - it is part of the **Delivery Tracking View** and is the value the sender reads while tracking the package
+  - it is **recalculated every time a Position Updated event is received** from the Fleet Context, producing an **Estimated Time Updated** event
+  - when the delivery is completed (drone arrived), the Estimated Time Remaining is **zero**
 - **To create a delivery request**
   - the action a sender performs to ask the system for a new delivery
   - it produces a **Delivery Request Created** event
 - **To cancel a request**
-  - the action a sender performs to withdraw a previously issued delivery request
+  - the action a sender performs to withdraw a delivery request that has **not yet started** (early cancellation, e.g. while still in the request/validation phase)
   - it produces a **Delivery Request Cancelled** event
+- **To cancel a delivery**
+  - the action a sender performs to cancel a delivery that has been **assigned but has not yet started its flight** (late cancellation, status *Assigned*)
+  - it produces a **Delivery Cancelled** event and triggers the **release of the drone reservation** in the Fleet Context
+  - a delivery already **in progress** (in flight) **cannot** be cancelled
 - **To validate a delivery**
   - the action by which the system checks whether a delivery request can be accepted
   - the validation evaluates all the attributes carried by the delivery request, in particular:
@@ -80,19 +90,22 @@
   - the action by which the system asks the Fleet Context whether the delivery can be served by an available drone
 - **Policies**
   - **Whenever Delivery Duration Estimated, then check it against the requested deadline**
+  - **Whenever Position Updated, then recalculate the Estimated Time Remaining and emit Estimated Time Updated**
   - **Whenever drone assigned, then delivery began**
-  - **Whenever Drone Failed during delivery, then reassign or abort**
   - **Whenever Drone Arrived, then complete the delivery**
+  - **Whenever a Drone goes Out Of Service during a delivery, then abolish (cancel) that delivery** *(scope decision: reassignment/abort is out of scope for the prototype — a drone failure simply abolishes the affected delivery)*
+  - **Whenever a sender cancels an assigned delivery, then cancel the delivery and release the drone reservation**
 - **Domain Events**
   - **Delivery Request Created**: a sender has issued a new delivery request
-  - **Delivery Request Cancelled**: a delivery request has been withdrawn
+  - **Delivery Request Cancelled**: a delivery request has been withdrawn before execution (early cancellation)
+  - **Delivery Cancelled**: an assigned delivery has been cancelled before its flight started — either on the sender's request or because the assigned drone went out of service; it triggers the release of the drone reservation
   - **Validation Delivery Passed**: a delivery request passed validation
   - **Validation Delivery Rejected**: a delivery request failed validation; this single event represents the rejection regardless of the failing condition (weight, route, time slot or deadline)
   - **Delivery Scheduled**: a validated delivery has been scheduled
   - **Delivery Began**: the execution of a delivery has started
-  - **Estimated Time Updated**: the estimated arrival/completion time of a delivery has been updated
+  - **Estimated Time Updated**: the estimated time remaining of a delivery has been recalculated (typically after a Position Updated event)
   - **Delivery Completed**: a delivery has been successfully finished
-  - **Drone out of service during delivery**: the assigned drone became unavailable while a delivery was in progress
+  - **Drone Out Of Service During Delivery**: the assigned drone became unavailable while a delivery was in progress, causing the delivery to be abolished
 
 ---
 
@@ -115,6 +128,10 @@
 - **To reserve a slot for a drone**
   - the action by which the system reserves a delivery slot on a drone
   - it produces either a **Drone Reserved** event or a **No Drone Available For Slot** event
+- **To release a reservation**
+  - the action by which the system frees a previously reserved slot, making the drone available again
+  - it is triggered when an assigned delivery is cancelled (late cancellation) or abolished (drone out of service)
+  - it produces a **Reservation Released** event
 - **To estimate delivery duration**
   - the action by which the system computes the expected duration of a delivery, producing a **Delivery Duration Estimated** event
 - **To assign a drone**
@@ -124,14 +141,18 @@
   - **Whenever feasibility requested, then check availability**
   - **Whenever a delivery is scheduled, then reserve a slot**
   - **Whenever Validation Delivery Passed, then assign a drone**
-  - **Whenever Validation Delivery Request rejected, then reject the request**
+  - **Whenever Validation Delivery Rejected, then reject the request**
+  - **Whenever a delivery is cancelled or abolished, then release the drone reservation**
+  - **Whenever a drone goes Out Of Service during a delivery, then mark the drone unavailable and notify the Deliveries Context**
 - **Domain Events**
   - **Drone Availability Checked**: the availability of drones has been verified
   - **Drone Reserved**: a slot on a drone has been successfully reserved
   - **No Drone Available For Slot**: no drone could be reserved for the requested slot
+  - **Reservation Released**: a previously reserved slot on a drone has been freed, making the drone available again
   - **Delivery Duration Estimated**: the duration of a delivery has been estimated
   - **Drone Assigned**: a drone has been assigned to a delivery
   - **Drone Not Available**: no drone could be assigned to a delivery
   - **Status Updated**: the status of a drone has been updated
   - **Position Updated**: the position of a drone has been updated
   - **Drone Arrived**: the drone reached the delivery destination
+  - **Drone Out Of Service**: a drone became unavailable; if it occurs during a delivery, it causes that delivery to be abolished
