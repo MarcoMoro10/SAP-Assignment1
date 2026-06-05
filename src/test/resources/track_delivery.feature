@@ -27,5 +27,5 @@ Feature: Track a delivery
   Scenario: Track a completed delivery
     Given I have a delivery "DLV-100" that has been delivered
     When I open the tracking page for delivery "DLV-100"
-    Then I should see the status "Delivered"
+    Then I should see the status "DELIVERED"
     And the estimated time remaining should be "0"

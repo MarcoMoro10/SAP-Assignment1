@@ -13,9 +13,9 @@ Feature: Fleet monitoring
     And each drone should show its current position
 
   Scenario: View the operational status of a drone
-    Given a drone "DRN-1" is in status "InFlight" and is carrying a package
+    Given a drone "DRN-1" is in status "IN_DELIVERY" and is carrying a package
     When I open the fleet monitoring page
-    Then I should see drone "DRN-1" with status "InFlight"
+    Then I should see drone "DRN-1" with status "IN_DELIVERY"
     And drone "DRN-1" should be shown as carrying a package
 
   Scenario: Drone position updates in real time
