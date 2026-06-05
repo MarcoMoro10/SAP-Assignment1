@@ -11,11 +11,13 @@ Feature: Nearest drone assignment
     Given drone "DRN-1" is available "2" km from the pickup point
     And drone "DRN-2" is available "5" km from the pickup point
     And both drones can carry the package
-    When I create a delivery with weight "2" kg, pickup location "via Emilia, 9", destination "via Veneto, 5" to ship immediately
+    When I create a delivery with weight "2" kg, starting place "via Emilia, 9", destination place "via Veneto, 5" to ship immediately
     Then drone "DRN-1" should be assigned to the delivery
+    And the delivery should be in status "ASSIGNED"
 
   Scenario: The nearest drone is skipped when it cannot carry the package
     Given drone "DRN-1" is available "2" km from the pickup point with max capacity "1" kg
     And drone "DRN-2" is available "5" km from the pickup point with max capacity "5" kg
-    When I create a delivery with weight "3" kg, pickup location "via Emilia, 9", destination "via Veneto, 5" to ship immediately
+    When I create a delivery with weight "3" kg, starting place "via Emilia, 9", destination place "via Veneto, 5" to ship immediately
     Then drone "DRN-2" should be assigned to the delivery
+    And the delivery should be in status "ASSIGNED"

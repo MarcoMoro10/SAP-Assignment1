@@ -22,4 +22,4 @@ Feature: Fleet monitoring
     Given I am on the fleet monitoring page
     And a drone "DRN-1" is at position "44.49, 11.34"
     When drone "DRN-1" reports a new position "44.50, 11.35"
-    Then the map should show drone "DRN-1" at position "44.50, 11.35"
+    Then the map should eventually show drone "DRN-1" at position "44.50, 11.35"

@@ -16,6 +16,7 @@ Feature: Delivery scheduling management
     Given a scheduled delivery "DLV-300" is planned for "2026-06-10" at "10:00"
     When the scheduler assigns it to drone "DRN-1"
     Then drone "DRN-1" should be reserved for "2026-06-10" at "10:00"
+    And drone "DRN-1" should be in status "RESERVED"
     And drone "DRN-1" should not be assignable to another delivery in that slot
 
   Scenario: Scheduling fails when no drone is free for the requested slot

@@ -3,8 +3,11 @@
 **Drone Delivery System**
 
 Personas:
-- **Sender**: user that wants to send a package.
-- **Admin**: already-registered user that monitors all drones and manages delivery scheduling.
+- **Sender**: a registered user who originates a delivery request.
+- **Admin**: an already-registered user with administrative privileges who monitors the fleet and manages delivery scheduling.
+- **Drone (external system)**: the physical device that emits telemetry (position & status); it is an actor, not a human user, and does not authenticate as a user.
+
+> **Note on terminology.** Throughout the user stories and their acceptance tests, delivery states use the canonical `DeliveryStatus` values — `REQUESTED`, `VALIDATED`, `REJECTED`, `SCHEDULED`, `ASSIGNED`, `IN_PROGRESS`, `DELIVERED`, `CANCELLED` — and drone states use the canonical `DroneStatus` values — `AVAILABLE`, `RESERVED`, `ASSIGNED`, `IN_DELIVERY`, `ARRIVED`, `OUT_OF_SERVICE`. These are the same values defined in the domain model.
 
 ---
 
@@ -52,7 +55,7 @@ so that my package is picked up either now or at a date/time I decide.
 
 ```
 As a logged-in Sender,
-I want to define a maximum delivery time
+I want to define a maximum delivery time (deadline)
 so that I am only committed to a shipment that arrives within my deadline.
 ```
 
@@ -84,7 +87,7 @@ so that I know when the package will arrive.
 
 ```
 As a logged-in Sender,
-I want to cancel a delivery request
+I want to cancel a delivery request before it is in flight
 so that I can stop a shipment I no longer need.
 ```
 
@@ -122,10 +125,44 @@ so that the drone is available to pick up the package when the Sender requested 
 
 ---
 
-## Quality Features
+## Telemetry (Drone external system)
+
+```
+As the Shipping on the Air system,
+I want to ingest position and status updates emitted by the drones
+so that delivery tracking and fleet monitoring reflect the real state of the fleet.
+```
+
+---
+
+## Quality Features (Non-Functional)
 
 ```
 As a Sender,
 I want to use the system from any modern web browser
 so that I can request deliveries without installing anything.
+```
+
+```
+As a Sender,
+I want the tracking view to reflect drone movement with low latency
+so that the position and the estimated time remaining I see are trustworthy.
+```
+
+```
+As the system owner,
+I want each bounded context to scale and fail independently
+so that a problem in one context (e.g. telemetry ingestion) does not bring down the others.
+```
+
+```
+As the system owner,
+I want telemetry ingestion to sustain frequent updates from the whole fleet
+so that real-time tracking and monitoring remain responsive as the fleet grows.
+```
+
+```
+As a user,
+I want my credentials and my deliveries to be protected
+so that only I (or an authorised Admin) can access my data.
 ```

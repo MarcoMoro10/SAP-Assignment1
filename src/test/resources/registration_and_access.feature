@@ -29,3 +29,10 @@ Feature: Registration and access
     When I log in with username "user-1" and password "WrongPass#1"
     Then I should see the error "Invalid credentials"
     And I should not be authenticated
+
+  Scenario: Successful admin login
+    Given I am a registered admin "admin-1" with password "Admin#123"
+    And I am on the login page
+    When I log in with username "admin-1" and password "Admin#123"
+    Then I should be authenticated as an admin
+    And I should be redirected to the fleet monitoring home page
