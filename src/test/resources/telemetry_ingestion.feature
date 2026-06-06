@@ -45,6 +45,14 @@ Feature: Telemetry ingestion
     And the estimated time remaining for delivery "DLV-100" should eventually be "0"
     And drone "DRN-1" should eventually become available again
 
+  Scenario: A drone going out of service mid-flight abolishes its delivery
+    When drone "DRN-1" reports status "OUT_OF_SERVICE"
+    Then the update should be accepted
+    And drone "DRN-1" should be in status "OUT_OF_SERVICE"
+    And a "Drone Out Of Service" event should be published for drone "DRN-1"
+    And delivery "DLV-100" should eventually be in status "ABOLISHED"
+    And the drone reservation for delivery "DLV-100" should eventually be released
+
   Scenario: Telemetry for an idle drone updates fleet state without affecting any delivery
     Given drone "DRN-2" is a known drone with no assigned delivery
     When drone "DRN-2" reports position "44.49, 11.34" with status "AVAILABLE"
