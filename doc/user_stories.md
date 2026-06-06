@@ -7,8 +7,6 @@ Personas:
 - **Admin**: an already-registered user with administrative privileges who monitors the fleet and manages delivery scheduling.
 - **Drone (external system)**: the physical device that emits telemetry (position & status); it is an actor, not a human user, and does not authenticate as a user.
 
-> **Note on terminology.** Throughout the user stories and their acceptance tests, delivery states use the canonical `DeliveryStatus` values — `REQUESTED`, `VALIDATED`, `REJECTED`, `SCHEDULED`, `ASSIGNED`, `IN_PROGRESS`, `DELIVERED`, `CANCELLED` — and drone states use the canonical `DroneStatus` values — `AVAILABLE`, `RESERVED`, `ASSIGNED`, `IN_DELIVERY`, `ARRIVED`, `OUT_OF_SERVICE`. These are the same values defined in the domain model.
-
 ---
 
 ## Registration and Access
@@ -90,6 +88,8 @@ As a logged-in Sender,
 I want to cancel a delivery request before it is in flight
 so that I can stop a shipment I no longer need.
 ```
+
+> **Scope note.** Cancellation covers both the *early* withdrawal of a request still in the request/validation phase (before any drone is reserved or assigned) and the *late* cancellation of a `SCHEDULED`/`ASSIGNED` delivery before its flight starts; the latter triggers the release of the drone reservation in the Fleet context. A delivery already `IN_PROGRESS` cannot be cancelled by the sender. The forced termination of an in-flight delivery (`ABOLISHED`) is **system-initiated**, not a sender action, and is therefore not modelled as a user story.
 
 ---
 
