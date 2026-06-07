@@ -10,7 +10,7 @@
   - it is organized into three bounded contexts: **Users Context**, **Deliveries Context** and **Fleet Context**
   - *(deployment note: the three logical contexts do not map one-to-one to deployment units. Users → account-service; Deliveries → delivery-service; **Fleet → a module inside the delivery-service**, not a separate service. A fourth applicative service, the session-service, orchestrates user sessions and routing. Bounded context ≠ deployment boundary.)*
 - **Read Model (projection)**
-  - a query-optimized view kept separate from the write model of an aggregate
+  - a query-optimized view (e.g. **Delivery Tracking View**, **Delivery Scheduling View**, **Fleet Monitoring View**) kept separate from the write model of an aggregate
   - read models are **projections** built and updated from domain events; this CQRS-like separation lets tracking and monitoring be served with low latency without loading the write side, and is a deliberate architectural choice rather than an incidental one
 - **Canonical state values**
   - **Delivery lifecycle (`DeliveryStatus`)**: `REQUESTED` → `VALIDATED` → `SCHEDULED` → `ASSIGNED` → `IN_PROGRESS` → `DELIVERED`; with the terminal off-paths `REJECTED` (validation failed), `CANCELLED` (withdrawn by the sender before flight) and `ABOLISHED` (forcibly terminated, e.g. drone out of service in flight)
@@ -110,7 +110,14 @@
   - the action by which the system starts the execution of an assigned delivery (the `begin()` method on the Delivery aggregate), moving it to `IN_PROGRESS`
   - it produces a **Delivery Begun** event
 - **To schedule a delivery**
-  - the action by which the system schedules a validated delivery, producing a **Delivery Scheduled** event
+  - the action by which the **system** schedules a validated delivery for its requested future slot, producing a **Delivery Scheduled** event
+  - *(scheduling is **automatic**: it is driven by the system's policies and by the **Scheduler** — a Vert.x timer verticle that triggers the assignment when the slot is due. It is **not** an Admin command: the Admin only **observes** scheduling through the Delivery Scheduling View, see below.)*
+- **Delivery Scheduling View**
+  - the read model / view that lets an Admin observe the scheduled deliveries — which deliveries are planned, on which drone, in which slot — ordered by pickup time
+  - it is a projection built from the delivery lifecycle (`Delivery Scheduled`, `Drone Reserved`, …); it is **read-only** and does not let the Admin alter the schedule
+- **To view the scheduling**
+  - the **read-only** action an Admin performs to inspect the scheduled deliveries (the daily plan per drone) through the **Delivery Scheduling View**
+  - *(the Admin does not create, move or reassign slots: in-flight reassignment is out of scope, and slot assignment is automatic. The Admin's role on scheduling is observational.)*
 - **To complete a delivery**
   - the action by which the system marks a delivery as finished (the `complete()` method on the Delivery aggregate), producing a **Delivery Completed** event
 - **To request fleet feasibility**
@@ -149,7 +156,7 @@
 - **DroneSimulator** *(internal component, not a domain concept)*
   - the internal mechanism (a Virtual Thread per active drone) that advances the drone and emits its domain events in-process; it is an implementation detail of the Fleet module, not an external actor and not part of the ubiquitous domain vocabulary proper
 - **Admin**
-  - within the Fleet Context, the Admin is modelled as the actor that operates on the fleet (observes the Fleet Monitoring View, manages scheduling); it does **not** carry credentials here
+  - within the Fleet Context, the Admin is modelled as the actor that operates on the fleet (observes the Fleet Monitoring View and the Delivery Scheduling View); it does **not** carry credentials here, and it does **not** actively manage scheduling — scheduling is automatic (see *To schedule a delivery*). The Admin's role is observational
   - *(the Admin's identity — Account with `role = ADMIN`, credentials, login — lives in the Users Context; the Fleet knows at most the identifier/role, never the credentials. These are two views of the same actor in two different contexts.)*
 - **Fleet Monitoring View**
   - the read model / view that lets an admin observe the state of the whole fleet
