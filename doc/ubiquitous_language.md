@@ -8,11 +8,13 @@
 - **Drone Delivery Service**
   - the online system that allows registered users to request, schedule and track parcel deliveries performed by a fleet of autonomous drones
   - it is organized into three bounded contexts: **Users Context**, **Deliveries Context** and **Fleet Context**
+  - *(deployment note: the three logical contexts do not map one-to-one to deployment units. Users → account-service; Deliveries → delivery-service; **Fleet → a module inside the delivery-service**, not a separate service. A fourth applicative service, the session-service, orchestrates user sessions and routing. Bounded context ≠ deployment boundary.)*
 - **Read Model (projection)**
-  - a query-optimized view (e.g. **Delivery Tracking View**, **Fleet Monitoring View**) kept separate from the write model of an aggregate
+  - a query-optimized view kept separate from the write model of an aggregate
   - read models are **projections** built and updated from domain events; this CQRS-like separation lets tracking and monitoring be served with low latency without loading the write side, and is a deliberate architectural choice rather than an incidental one
 - **Canonical state values**
   - **Delivery lifecycle (`DeliveryStatus`)**: `REQUESTED` → `VALIDATED` → `SCHEDULED` → `ASSIGNED` → `IN_PROGRESS` → `DELIVERED`; with the terminal off-paths `REJECTED` (validation failed), `CANCELLED` (withdrawn by the sender before flight) and `ABOLISHED` (forcibly terminated, e.g. drone out of service in flight)
+    - `VALIDATED` is an **internal, transient** state: it is not observable by the sender and does not appear in the acceptance tests, because it immediately collapses into `ASSIGNED` (immediate delivery) or `SCHEDULED` (scheduled delivery), or into `REJECTED` on failure. It remains in the model as a logical step of the pipeline, not as a publicly asserted state.
   - **Drone lifecycle (`DroneStatus`)**: `AVAILABLE`, `RESERVED`, `ASSIGNED`, `IN_DELIVERY`, `ARRIVED`, `OUT_OF_SERVICE`
   - these are the single source of truth for the state names used across the domain model, the event storming and the acceptance tests
 
@@ -21,19 +23,23 @@
 ### Users Context
 
 - **User**
-  - the actor that accesses the drone delivery service
+  - a person that accesses the drone delivery service through an **Account**; concretely a User is either a **Sender** or an **Admin**, distinguished by the Account `role`
 - **Account**
   - in order to access the features of the service, a user must register into the system, creating an account by filling a registration form
   - users that have an account are also referred as registered users
+  - an Account carries a **`role`** attribute (`SENDER` | `ADMIN`): there is a single `Account` aggregate, not two distinct types. Identity and role are born here, in the Users Context; authorization (what an Admin may do) is enforced downstream
 - **Sender**
-  - a registered user who acts as the originator of a delivery request
+  - a registered user (Account with `role = SENDER`) who acts as the originator of a delivery request
+- **Admin**
+  - a registered user (Account with `role = ADMIN`) with administrative privileges who monitors the fleet and manages delivery scheduling
+  - the Admin account is **pre-loaded** at service start-up: it is **not** created through public registration and can only **log in**. Public registration produces only `SENDER` accounts. There is no "admin registration" endpoint and no role-promotion logic
 - **Register Form**
   - the form that a user fills in to provide the data needed to create a new account
 - **To register an account**
   - the action by which a user submits the register form to create a new account in the system
-  - it produces either an **Account Created** event (success) or a **Registration Failed** event (failure)
+  - it produces either an **Account Created** event or a **Registration Failed** event
 - **To login**
-  - the action that a registered user must perform, specifying credentials, in order to start a session to interact with the service
+  - the action that a registered user (Sender or Admin) must perform, specifying credentials, in order to start a session to interact with the service
   - it produces either a **User Logged In** event (success) or a **Login Failed** event (failure)
 - **Domain Events**
   - **Account Created**: a new account has been successfully created
@@ -61,8 +67,8 @@
     - **Requested Date/Time**: when the delivery should take place; it can be **Immediate** (as soon as possible) or **Scheduled** (a specific future date/time)
     - **Deadline**: the maximum amount of time within which the delivery must be completed
 - **Location vs Position**
-  - **Location** (Deliveries Context) is an *address-bearing place* — coordinates plus a human address — used for **Pickup Location** and **Destination**; it is static for a given request
-  - **Position** (Fleet Context) is a *timestamped point* — coordinates plus the instant they were observed — describing where a **drone** currently is; it changes continuously as telemetry arrives
+  - **Location** (Deliveries Context) is an *address-bearing place*, coordinates plus a human address, used for **Pickup Location** and **Destination**; it is static for a given request
+  - **Position** (Fleet Context) is a *timestamped point*, coordinates plus the instant they were observed, describing where a **drone** currently is; it changes continuously as the drone moves during a delivery
   - keeping the two as distinct value objects makes explicit that a delivery's endpoints and a drone's live whereabouts are different concepts, even though both are built on coordinates
 - **Deadline (clarification)**
   - the Deadline is modelled as a **duration** (a maximum elapsed time), not as a calendar instant; "deliver within 30 minutes" is a Deadline, whereas "deliver on 2026-06-10 at 10:00" is a **Requested Date/Time**
@@ -83,10 +89,10 @@
   - it produces a **Delivery Cancelled** event and triggers the **release of the drone reservation** in the Fleet Context
   - a delivery already **in flight** (`IN_PROGRESS`) **cannot** be cancelled by the sender
 - **To abolish a delivery**
-  - the **system-initiated** termination of a delivery that is already **in flight** (`IN_PROGRESS`) and can no longer proceed — the prototype's only such cause is the **assigned drone going out of service mid-flight**
+  - the **system-initiated** termination of a delivery that is already **in flight** (`IN_PROGRESS`) and can no longer proceed, the prototype's only such cause is the **assigned drone going out of service mid-flight**
   - it is *not* a sender action and is distinct from cancellation: it is the system's response to a failure, not a withdrawal
   - it produces a **Delivery Abolished** event and moves the delivery to the terminal status `ABOLISHED`
-  - *(scope decision: in-flight reassignment to another drone is out of scope for the prototype — a drone failure simply abolishes the affected delivery)*
+  - *(scope decision: in-flight reassignment to another drone is out of scope for the prototype, a drone failure simply abolishes the affected delivery)*
 - **To validate a delivery**
   - the action by which the system checks whether a delivery request can be accepted
   - the validation evaluates all the attributes carried by the delivery request, in particular:
@@ -100,12 +106,15 @@
   - the read model / view that lets a sender follow the progress of a delivery
 - **To track a delivery**
   - the action a sender performs to monitor a delivery in progress
+- **To begin a delivery**
+  - the action by which the system starts the execution of an assigned delivery (the `begin()` method on the Delivery aggregate), moving it to `IN_PROGRESS`
+  - it produces a **Delivery Begun** event
 - **To schedule a delivery**
   - the action by which the system schedules a validated delivery, producing a **Delivery Scheduled** event
 - **To complete a delivery**
-  - the action by which the system marks a delivery as finished, producing a **Delivery Completed** event
+  - the action by which the system marks a delivery as finished (the `complete()` method on the Delivery aggregate), producing a **Delivery Completed** event
 - **To request fleet feasibility**
-  - the action by which the system asks the Fleet Context whether the delivery can be served by an available drone
+  - the action by which the Deliveries module asks the Fleet module whether the delivery can be served by an available drone
 - **Policies**
   - **Whenever Delivery Duration Estimated, then check it against the requested deadline**
   - **Whenever Position Updated, then recalculate the Estimated Time Remaining and emit Estimated Time Updated**
@@ -121,20 +130,27 @@
   - **Validation Delivery Passed**: a delivery request passed validation
   - **Validation Delivery Rejected**: a delivery request failed validation; this single event represents the rejection regardless of the failing condition (weight, route, time slot or deadline)
   - **Delivery Scheduled**: a validated delivery has been scheduled
-  - **Delivery Began**: the execution of a delivery has started
+  - **Delivery Begun**: the execution of a delivery has started (produced by `begin()`; the delivery enters `IN_PROGRESS`)
   - **Estimated Time Updated**: the estimated time remaining of a delivery has been recalculated (typically after a Position Updated event)
-  - **Delivery Completed**: a delivery has been successfully finished
+  - **Delivery Completed**: a delivery has been successfully finished (produced by `complete()`; the delivery enters `DELIVERED`)
 
 ---
 
 ### Fleet Context
 
 - **Drone**
-  - the core aggregate of this context: an autonomous vehicle of the fleet that physically performs deliveries
+  - the core aggregate of this context: an autonomous vehicle of the fleet that physically performs deliveries (in the prototype, its movement is simulated internally, see the note above)
   - a drone has a lifecycle through availability checking, reservation, assignment, execution and arrival
   - it is characterized by a **payload capacity** (maximum transportable weight), against which the package weight is checked during validation
+  - **invariant**: an update referring to an unknown `DroneId` is a violated internal precondition, the Fleet module does not apply it and signals an error (covers the "unknown drone" acceptance scenario)
+- **Position**
+  - a *timestamped point* (coordinates + observation instant) describing where a drone currently is
+  - **invariant**: a `Position` (and its `Coordinates`) cannot be constructed with out-of-range coordinates, the value object's constructor rejects illegal values (covers the "invalid position" acceptance scenario). This is a domain invariant, not network-input validation
+- **DroneSimulator** *(internal component, not a domain concept)*
+  - the internal mechanism (a Virtual Thread per active drone) that advances the drone and emits its domain events in-process; it is an implementation detail of the Fleet module, not an external actor and not part of the ubiquitous domain vocabulary proper
 - **Admin**
-  - a registered user with administrative privileges who monitors and manages the fleet
+  - within the Fleet Context, the Admin is modelled as the actor that operates on the fleet (observes the Fleet Monitoring View, manages scheduling); it does **not** carry credentials here
+  - *(the Admin's identity — Account with `role = ADMIN`, credentials, login — lives in the Users Context; the Fleet knows at most the identifier/role, never the credentials. These are two views of the same actor in two different contexts.)*
 - **Fleet Monitoring View**
   - the read model / view that lets an admin observe the state of the whole fleet
 - **To track drones**
@@ -154,6 +170,7 @@
   - the action by which the system computes the expected duration of a delivery, producing a **Delivery Duration Estimated** event
 - **To assign a drone**
   - the action by which the system assigns a drone to a validated and scheduled delivery
+  - for **immediate** deliveries, the nearest eligible drone able to carry the package is chosen
   - it produces either a **Drone Assigned** event or a **Drone Not Available** event
 - **Policies**
   - **Whenever feasibility requested, then check availability**
@@ -170,7 +187,7 @@
   - **Delivery Duration Estimated**: the duration of a delivery has been estimated
   - **Drone Assigned**: a drone has been assigned to a delivery
   - **Drone Not Available**: no drone could be assigned to a delivery
-  - **Status Updated**: the status of a drone has been updated
-  - **Position Updated**: the position of a drone has been updated
+  - **Status Updated**: the status of a drone has been updated (internally, by the DroneSimulator)
+  - **Position Updated**: the position of a drone has been updated (internally, by the DroneSimulator)
   - **Drone Arrived**: the drone reached the delivery destination
   - **Drone Out Of Service**: a drone became unavailable; if it occurs during a delivery, it causes that delivery to be abolished
