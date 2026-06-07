@@ -4,8 +4,9 @@
 
 Personas:
 - **Sender**: a registered user who originates a delivery request.
-- **Admin**: an already-registered user with administrative privileges who monitors the fleet and manages delivery scheduling.
-- **Drone (external system)**: the physical device that emits telemetry (position & status); it is an actor, not a human user, and does not authenticate as a user.
+- **Admin**: an already-registered user with administrative privileges who monitors the fleet and manages delivery scheduling. The Admin account is pre-loaded (seed): it does not register, it only logs in.
+
+> **Note on the drone.** In this prototype the drone is **not an external actor**. It is simulated internally by the delivery-service (a Virtual Thread per active drone), and its position/status updates are **internal domain events** of the Fleet Context (`Position Updated`, `Drone Arrived`, `Drone Out Of Service`), propagated in-process via the Observer pattern — not telemetry ingested over the network from an external device. There is therefore no "Drone" persona and no telemetry user story directed at an external system; the drone's behaviour is captured by the delivery lifecycle and fleet-monitoring stories below.
 
 ---
 
@@ -18,14 +19,14 @@ so that I can request drone deliveries.
 ```
 
 ```
-As a registered user,
+As a registered Sender,
 I want to log into the system
 so that I can create deliveries and track them.
 ```
 
 ```
 As an Admin,
-I want to log into the system with my existing account
+I want to log into the system with my existing (pre-loaded) account
 so that I can manage scheduling and monitor the fleet.
 ```
 
@@ -125,16 +126,6 @@ so that the drone is available to pick up the package when the Sender requested 
 
 ---
 
-## Telemetry (Drone external system)
-
-```
-As the Shipping on the Air system,
-I want to ingest position and status updates emitted by the drones
-so that delivery tracking and fleet monitoring reflect the real state of the fleet.
-```
-
----
-
 ## Quality Features (Non-Functional)
 
 ```
@@ -151,14 +142,14 @@ so that the position and the estimated time remaining I see are trustworthy.
 
 ```
 As the system owner,
-I want each bounded context to scale and fail independently
-so that a problem in one context (e.g. telemetry ingestion) does not bring down the others.
+I want each bounded context to keep clear logical boundaries
+so that the domain stays decoupled and the system can evolve (e.g. extracting the Fleet context as its own service in a later iteration) without rewriting the core.
 ```
 
 ```
 As the system owner,
-I want telemetry ingestion to sustain frequent updates from the whole fleet
-so that real-time tracking and monitoring remain responsive as the fleet grows.
+I want the in-process domain events that drive tracking and monitoring to stay responsive as the number of active drones grows
+so that real-time tracking and fleet monitoring remain trustworthy.
 ```
 
 ```

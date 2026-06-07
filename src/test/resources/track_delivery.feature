@@ -16,7 +16,7 @@ Feature: Track a delivery
   Scenario: Estimated time remaining updates while the drone moves
     Given I have a delivery "DLV-100" in status "IN_PROGRESS"
     And I am on the tracking page for delivery "DLV-100"
-    When the drone reports a new position closer to the destination
+    When the drone moves to a new position closer to the destination
     Then the tracking view of delivery "DLV-100" should eventually show a decreased estimated time remaining
 
   Scenario: Tracking a delivery that does not belong to the user is not allowed

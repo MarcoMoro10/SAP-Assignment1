@@ -21,5 +21,5 @@ Feature: Fleet monitoring
   Scenario: Drone position updates in real time
     Given I am on the fleet monitoring page
     And a drone "DRN-1" is at position "44.49, 11.34"
-    When drone "DRN-1" reports a new position "44.50, 11.35"
+    When drone "DRN-1" updates its position to "44.50, 11.35"
     Then the map should eventually show drone "DRN-1" at position "44.50, 11.35"
