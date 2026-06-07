@@ -1,20 +1,23 @@
-Feature: Delivery scheduling management
-  As an Admin,
-  I want to manage the scheduling of delivery requests for each drone
-  so that the daily route of every drone is organised efficiently.
+Feature: Delivery scheduling (automatic; Admin observes)
+  Scheduling is performed automatically by the system: a validated scheduled delivery
+  is planned and a drone slot is reserved by the system's policies and by the Scheduler
+  (a Vert.x timer verticle). The Admin does NOT manage scheduling actively; the Admin
+  only reviews the scheduled deliveries through a read-only view (Delivery Scheduling View).
 
-  Background:
+  # The "reserve a slot" and "no drone for the slot" scenarios below describe SYSTEM
+  # behaviour (automatic policies), not Admin commands. Only the first scenario is an
+  # Admin-facing (read-only) interaction.
+
+  Scenario: An Admin reviews the daily schedule of a drone (read-only)
     Given I am logged in as admin "admin-1" with password "Admin#123"
-
-  Scenario: View the daily schedule of a drone
-    Given drone "DRN-1" has "2" scheduled deliveries today
-    When I open the scheduling page for drone "DRN-1"
+    And drone "DRN-1" has "2" scheduled deliveries today
+    When I open the scheduling view for drone "DRN-1"
     Then I should see "2" scheduled deliveries
     And they should be ordered by their pickup time
 
-  Scenario: A scheduled delivery reserves a drone for the requested slot
+  Scenario: A scheduled delivery automatically reserves a drone for the requested slot
     Given a scheduled delivery "DLV-300" is planned for "2026-06-10" at "10:00"
-    When the scheduler assigns it to drone "DRN-1"
+    When the system schedules it onto drone "DRN-1"
     Then drone "DRN-1" should be reserved for "2026-06-10" at "10:00"
     And drone "DRN-1" should be in status "RESERVED"
     And drone "DRN-1" should not be assignable to another delivery in that slot
