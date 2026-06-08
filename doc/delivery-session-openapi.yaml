@@ -17,7 +17,7 @@ tags:
   - name: delivery
     description: Delivery lifecycle (create, query, cancel)
   - name: tracking
-    description: Tracking command (creates a TrackingSession)
+    description: Tracking command
   - name: admin-fleet
     description: Fleet monitoring view (internal Fleet module, read-only)
   - name: admin-scheduling
@@ -168,7 +168,7 @@ paths:
     post:
       tags:
         - tracking
-      summary: Start tracking — create a TrackingSession
+      summary: Start tracking
       description:
       operationId: startTracking
       parameters:
@@ -208,7 +208,7 @@ paths:
     get:
       tags:
         - tracking
-      summary: "Live tracking stream"
+      summary: "Live tracking stream "
       description:
       operationId: trackingStream
       parameters:
@@ -219,11 +219,7 @@ paths:
             type: string
       responses:
         '101':
-          description: |-
-            Switching Protocols — WebSocket connection established. The server
-            then pushes a sequence of messages, each with the shape below
-            (TrackingUpdate). This content is the streamed message shape, not a
-            single REST response body.
+          description:
           content:
             application/json:
               schema:
@@ -290,7 +286,7 @@ components:
 
     DroneStatus:
       type: string
-      description: Canonical drone status.
+      description:
       enum:
         - AVAILABLE
         - RESERVED
@@ -315,8 +311,7 @@ components:
 
     Coordinates:
       type: object
-      description: |-
-        Geographic coordinates.
+      description:
       properties:
         latitude:
           type: number
@@ -335,7 +330,7 @@ components:
       properties:
         senderId:
           type: string
-          description: Identifier of the owning Sender
+          description: Identifier of the owning Sender (coined in the Users Context)
         weight:
           type: number
           description: Package weight in kilograms
@@ -347,12 +342,15 @@ components:
         immediate:
           type: boolean
           description: |-
-            true for an immediate delivery; false for a scheduled delivery.
+            true for an immediate delivery; false for a scheduled delivery
+            (in which case scheduledAt is required).
           default: true
         scheduledAt:
           type: string
           format: date-time
           description: |-
+            Requested date/time for a scheduled delivery.
+            Required when immediate is false; ignored when immediate is true.
           example: "2026-06-10T10:00:00+02:00"
         deadlineMinutes:
           type: integer
@@ -401,6 +399,8 @@ components:
     TrackingHandle:
       type: object
       description: |-
+        Returned by the track command. webSocketUrl is the channel the client
+        opens to receive the live stream.
       properties:
         trackingSessionId:
           type: string
@@ -413,6 +413,8 @@ components:
     TrackingUpdate:
       type: object
       description: |-
+        Shape of a message pushed on the tracking WebSocket.
+        Emitted whenever the tracked delivery's position/ETR changes.
       properties:
         deliveryId:
           type: string

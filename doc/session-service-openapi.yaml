@@ -2,9 +2,8 @@ openapi: 3.0.3
 info:
   title: "Shipping on the Air — Session Service API"
   description: |-
-    REST API of the session-service for the "Shipping on the Air"
+    REST API of the session-service (orchestrator) for the "Shipping on the Air"
     drone delivery system.
-
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -58,7 +57,7 @@ paths:
       tags:
         - delivery
       summary: Create a delivery request (Sender)
-      description: |-
+      description:
       operationId: createDelivery
       parameters:
         - name: sessionId
@@ -81,7 +80,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CreateDeliveryResponse'
         '422':
-          description: |-
+          description:
           content:
             application/json:
               schema:
@@ -118,7 +117,7 @@ paths:
       tags:
         - delivery
       summary: Cancel a delivery before flight (Sender)
-      description: |-
+      description:
       operationId: cancelDelivery
       parameters:
         - name: sessionId
@@ -171,8 +170,8 @@ paths:
     post:
       tags:
         - delivery
-      summary: Start tracking a delivery (Sender)
-      description: |-
+      summary: Start tracking a delivery (Sender) — command only
+      description:
       operationId: trackDelivery
       parameters:
         - name: sessionId
@@ -213,7 +212,7 @@ paths:
       tags:
         - delivery
       summary: Query a delivery's current state (Sender)
-      description: |-
+      description:
       operationId: getDelivery
       parameters:
         - name: sessionId
@@ -280,7 +279,7 @@ paths:
       tags:
         - admin
       summary: View scheduled deliveries
-      description: |-
+      description:
       operationId: viewScheduling
       parameters:
         - name: sessionId
@@ -327,9 +326,7 @@ components:
 
     DeliveryStatus:
       type: string
-      description: |-
-        VALIDATED is internal/transient and is
-        never exposed through the API.
+      description:
       enum:
         - REQUESTED
         - SCHEDULED
@@ -342,7 +339,7 @@ components:
 
     DroneStatus:
       type: string
-      description: Canonical drone status.
+      description: Canonical drone status (§10).
       enum:
         - AVAILABLE
         - RESERVED
@@ -367,14 +364,11 @@ components:
 
     SessionResponse:
       type: object
-      description: |-
-        Result of a successful login. Carries the session id, the role, and the
-        role-appropriate navigation link. SENDER and ADMIN receive
-        different link sets.
+      description:
       properties:
         sessionId:
           type: string
-          description: Identifier of the created user session
+          description: Identifier of the created (temporary) user session
         accountId:
           type: string
         role:
@@ -432,9 +426,7 @@ components:
         scheduledAt:
           type: string
           format: date-time
-          description: |-
-            Requested date/time for a scheduled delivery (ISO-8601). Required
-            when immediate is false; ignored when immediate is true.
+          description:
           example: "2026-06-10T10:00:00+02:00"
         deadlineMinutes:
           type: integer
@@ -460,10 +452,7 @@ components:
 
     TrackingHandle:
       type: object
-      description: |-
-        Handle returned by the track-delivery command. The client uses
-        webSocketUrl to open the live tracking stream DIRECTLY against the
-        delivery-service.
+      description:
       properties:
         trackingSessionId:
           type: string
@@ -492,7 +481,7 @@ components:
           type: integer
           description: |-
             Estimated time remaining before completion, in seconds; 0 once
-            delivered.
+            delivered. Present while IN_PROGRESS.
 
     FleetDroneView:
       type: object
