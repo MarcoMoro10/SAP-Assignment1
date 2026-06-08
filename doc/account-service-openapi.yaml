@@ -212,7 +212,7 @@ components:
 
     Account:
       type: object
-      description: Public view of an account (password is never exposed).
+      description: Public view of an account.
       properties:
         accountId:
           type: string
