@@ -17,6 +17,12 @@ Feature: Fleet telemetry (internal drone simulation)
   # validation of untrusted network input: a Position value object cannot be constructed
   # with out-of-range coordinates, and the Fleet module rejects an unknown DroneId as a
   # violated internal precondition.
+  #
+  # Test strategy (see architecture §3): this is an acceptance test of the delivery-service.
+  # The Given configures the initial state of the internal Fleet module IN-PROCESS, through
+  # the domain (drones created via their legitimate factory/constructor and registered in
+  # the in-memory fleet repository). There is no REST endpoint to set or inject fleet state;
+  # the Given works against the domain directly because the fleet has no network surface.
 
   Background:
     Given drone "DRN-1" is a known drone in the fleet
