@@ -133,7 +133,7 @@ public class FileBasedDeliveryRepository implements DeliveryRepository, OutputAd
         final Location pickup = Location.of(new Coordinates(r.startLat, r.startLon), r.startAddress);
         final Location destination = Location.of(new Coordinates(r.destinationLat, r.destinationLon), r.destinationAddress);
         final RequestedDateTime when = r.immediate
-                ? RequestedDateTime.immediate()
+                ? RequestedDateTime.immediateRequest()
                 : RequestedDateTime.scheduledAt(LocalDateTime.parse(r.scheduledAt));
         final Deadline deadline = r.deadlineMinutes > 0 ? Deadline.ofMinutes(r.deadlineMinutes) : null;
         final DeliveryRequest request = new DeliveryRequest(parcel, pickup, destination, when, deadline);

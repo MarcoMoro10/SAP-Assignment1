@@ -13,7 +13,7 @@ public record RequestedDateTime(boolean immediate, LocalDateTime scheduledAt) im
         }
     }
 
-    public static RequestedDateTime immediate() {
+    public static RequestedDateTime immediateRequest() {
         return new RequestedDateTime(true, null);
     }
 

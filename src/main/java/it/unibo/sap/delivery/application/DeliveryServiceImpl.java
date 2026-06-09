@@ -217,7 +217,7 @@ public class DeliveryServiceImpl implements DeliveryService {
 
     private RequestedDateTime buildRequestedDateTime(final CreateDeliveryCommand cmd) {
         if (cmd.immediate()) {
-            return RequestedDateTime.immediate();
+            return RequestedDateTime.immediateRequest();
         }
         if (cmd.scheduledAt() == null) {
             throw new BadRequestException("Invalid shipping time");
