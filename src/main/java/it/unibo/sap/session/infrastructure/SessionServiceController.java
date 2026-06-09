@@ -1,5 +1,7 @@
 package it.unibo.sap.session.infrastructure;
 
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -9,15 +11,21 @@ import it.unibo.sap.session.application.SessionService;
 import it.unibo.sap.session.domain.Session;
 import it.unibo.sap.session.domain.SessionId;
 
-public class SessionServiceController implements InputAdapter {
+public class SessionServiceController extends AbstractVerticle implements InputAdapter {
+
+    public static final int DEFAULT_PORT = 8081;
 
     private final SessionService sessionService;
+    private final int port;
 
-    public SessionServiceController(final SessionService sessionService) {
+    public SessionServiceController(final SessionService sessionService, final int port) {
         this.sessionService = sessionService;
+        this.port = port;
     }
 
-    public void registerRoutes(final Router router) {
+    @Override
+    public void start(final Promise<Void> startPromise) {
+        final Router router = Router.router(vertx);
         router.route("/api/v1/*").handler(BodyHandler.create());
         router.post("/api/v1/login").handler(this::handleLogin);
         router.post("/api/v1/user-sessions/:sessionId/create-delivery").handler(this::handleCreateDelivery);
@@ -26,18 +34,29 @@ public class SessionServiceController implements InputAdapter {
         router.get("/api/v1/user-sessions/:sessionId/deliveries/:deliveryId").handler(this::handleGetDelivery);
         router.get("/api/v1/user-sessions/:sessionId/admin/fleet").handler(this::handleViewFleet);
         router.get("/api/v1/user-sessions/:sessionId/admin/scheduling").handler(this::handleViewScheduling);
+
+        vertx.createHttpServer()
+                .requestHandler(router)
+                .listen(port, http -> {
+                    if (http.succeeded()) {
+                        System.out.println("session-service ready - port: " + port);
+                        startPromise.complete();
+                    } else {
+                        startPromise.fail(http.cause());
+                    }
+                });
     }
 
     private void handleLogin(final RoutingContext ctx) {
         final JsonObject body = ctx.body().asJsonObject();
-        final String username = body.getString("username");
-        final String password = body.getString("password");
+        final String username = body == null ? null : body.getString("username");
+        final String password = body == null ? null : body.getString("password");
         if (username == null || username.isBlank() || password == null || password.isBlank()) {
             ctx.response().setStatusCode(400)
                     .end(new JsonObject().put("error", "Missing username or password").encode());
             return;
         }
-        try {
+        vertx.executeBlocking(() -> {
             final Session session = sessionService.login(username, password);
             final JsonObject links = new JsonObject();
             final String base = "/api/v1/user-sessions/" + session.getId().value();
@@ -48,127 +67,137 @@ public class SessionServiceController implements InputAdapter {
                 links.put("fleetLink", base + "/admin/fleet");
                 links.put("schedulingLink", base + "/admin/scheduling");
             }
-            ctx.response().setStatusCode(200)
-                    .putHeader("Content-Type", "application/json")
-                    .end(new JsonObject()
-                            .put("sessionId", session.getId().value())
-                            .put("accountId", session.getAccountId())
-                            .put("role", session.getRole())
-                            .put("links", links)
-                            .encode());
-        } catch (final IllegalArgumentException e) {
-            ctx.response().setStatusCode(401)
-                    .end(new JsonObject().put("error", e.getMessage()).encode());
-        }
+            return new JsonObject()
+                    .put("sessionId", session.getId().value())
+                    .put("accountId", session.getAccountId())
+                    .put("role", session.getRole())
+                    .put("links", links);
+        }, false).onComplete(ar -> {
+            if (ar.succeeded()) {
+                ctx.response().setStatusCode(200)
+                        .putHeader("Content-Type", "application/json")
+                        .end(ar.result().encode());
+            } else {
+                ctx.response().setStatusCode(401)
+                        .end(new JsonObject().put("error", causeMessage(ar.cause())).encode());
+            }
+        });
     }
 
     private void handleCreateDelivery(final RoutingContext ctx) {
         final SessionId sessionId = SessionId.of(ctx.pathParam("sessionId"));
-        try {
-            final JsonObject body = ctx.body().asJsonObject();
-            final JsonObject result = sessionService.createDelivery(sessionId, body);
-            final int statusCode = result.containsKey("_statusCode") ? result.getInteger("_statusCode") : 201;
-            result.remove("_statusCode");
-            ctx.response().setStatusCode(statusCode)
-                    .putHeader("Content-Type", "application/json")
-                    .end(result.encode());
-        } catch (final SecurityException e) {
-            ctx.response().setStatusCode(403)
-                    .end(new JsonObject().put("error", e.getMessage()).encode());
-        } catch (final IllegalArgumentException e) {
-            ctx.response().setStatusCode(404)
-                    .end(new JsonObject().put("error", e.getMessage()).encode());
-        }
+        final JsonObject body = ctx.body().asJsonObject();
+        vertx.executeBlocking(() -> sessionService.createDelivery(sessionId, body), false)
+                .onComplete(ar -> {
+                    if (ar.succeeded()) {
+                        final JsonObject result = ar.result();
+                        final int statusCode = result.containsKey("_statusCode")
+                                ? result.getInteger("_statusCode") : 201;
+                        result.remove("_statusCode");
+                        ctx.response().setStatusCode(statusCode)
+                                .putHeader("Content-Type", "application/json")
+                                .end(result.encode());
+                    } else {
+                        respondError(ctx, ar.cause());
+                    }
+                });
     }
 
     private void handleCancelDelivery(final RoutingContext ctx) {
         final SessionId sessionId = SessionId.of(ctx.pathParam("sessionId"));
-        try {
-            final JsonObject body = ctx.body().asJsonObject();
-            final String deliveryId = body.getString("deliveryId");
-            final JsonObject result = sessionService.cancelDelivery(sessionId, deliveryId);
-            final int statusCode = result.containsKey("_statusCode") ? result.getInteger("_statusCode") : 200;
-            result.remove("_statusCode");
-            ctx.response().setStatusCode(statusCode)
-                    .putHeader("Content-Type", "application/json")
-                    .end(result.encode());
-        } catch (final SecurityException e) {
-            ctx.response().setStatusCode(403)
-                    .end(new JsonObject().put("error", e.getMessage()).encode());
-        } catch (final IllegalArgumentException e) {
-            ctx.response().setStatusCode(404)
-                    .end(new JsonObject().put("error", e.getMessage()).encode());
-        }
+        final JsonObject body = ctx.body().asJsonObject();
+        final String deliveryId = body == null ? null : body.getString("deliveryId");
+        vertx.executeBlocking(() -> sessionService.cancelDelivery(sessionId, deliveryId), false)
+                .onComplete(ar -> {
+                    if (ar.succeeded()) {
+                        final JsonObject result = ar.result();
+                        final int statusCode = result.containsKey("_statusCode")
+                                ? result.getInteger("_statusCode") : 200;
+                        result.remove("_statusCode");
+                        ctx.response().setStatusCode(statusCode)
+                                .putHeader("Content-Type", "application/json")
+                                .end(result.encode());
+                    } else {
+                        respondError(ctx, ar.cause());
+                    }
+                });
     }
 
     private void handleTrackDelivery(final RoutingContext ctx) {
         final SessionId sessionId = SessionId.of(ctx.pathParam("sessionId"));
-        try {
-            final JsonObject body = ctx.body().asJsonObject();
-            final String deliveryId = body.getString("deliveryId");
-            final JsonObject result = sessionService.trackDelivery(sessionId, deliveryId);
-            ctx.response().setStatusCode(200)
-                    .putHeader("Content-Type", "application/json")
-                    .end(result.encode());
-        } catch (final SecurityException e) {
-            ctx.response().setStatusCode(403)
-                    .end(new JsonObject().put("error", e.getMessage()).encode());
-        } catch (final IllegalArgumentException e) {
-            ctx.response().setStatusCode(404)
-                    .end(new JsonObject().put("error", e.getMessage()).encode());
-        }
+        final JsonObject body = ctx.body().asJsonObject();
+        final String deliveryId = body == null ? null : body.getString("deliveryId");
+        vertx.executeBlocking(() -> sessionService.trackDelivery(sessionId, deliveryId), false)
+                .onComplete(ar -> {
+                    if (ar.succeeded()) {
+                        ctx.response().setStatusCode(200)
+                                .putHeader("Content-Type", "application/json")
+                                .end(ar.result().encode());
+                    } else {
+                        respondError(ctx, ar.cause());
+                    }
+                });
     }
 
     private void handleGetDelivery(final RoutingContext ctx) {
         final SessionId sessionId = SessionId.of(ctx.pathParam("sessionId"));
         final String deliveryId = ctx.pathParam("deliveryId");
-        try {
-            sessionService.getDelivery(sessionId, deliveryId).ifPresentOrElse(
-                    delivery -> ctx.response().setStatusCode(200)
-                            .putHeader("Content-Type", "application/json")
-                            .end(delivery.encode()),
-                    () -> ctx.response().setStatusCode(404)
-                            .end(new JsonObject().put("error", "Delivery not found").encode())
-            );
-        } catch (final SecurityException e) {
-            ctx.response().setStatusCode(403)
-                    .end(new JsonObject().put("error", e.getMessage()).encode());
-        } catch (final IllegalArgumentException e) {
-            ctx.response().setStatusCode(404)
-                    .end(new JsonObject().put("error", e.getMessage()).encode());
-        }
+        vertx.executeBlocking(() -> sessionService.getDelivery(sessionId, deliveryId), false)
+                .onComplete(ar -> {
+                    if (ar.succeeded()) {
+                        ar.result().ifPresentOrElse(
+                                delivery -> ctx.response().setStatusCode(200)
+                                        .putHeader("Content-Type", "application/json")
+                                        .end(delivery.encode()),
+                                () -> ctx.response().setStatusCode(404)
+                                        .end(new JsonObject().put("error", "Delivery not found").encode())
+                        );
+                    } else {
+                        respondError(ctx, ar.cause());
+                    }
+                });
     }
 
     private void handleViewFleet(final RoutingContext ctx) {
         final SessionId sessionId = SessionId.of(ctx.pathParam("sessionId"));
-        try {
-            final JsonObject result = sessionService.viewFleet(sessionId);
-            ctx.response().setStatusCode(200)
-                    .putHeader("Content-Type", "application/json")
-                    .end(result.getJsonArray("fleet").encode());
-        } catch (final SecurityException e) {
-            ctx.response().setStatusCode(403)
-                    .end(new JsonObject().put("error", e.getMessage()).encode());
-        } catch (final IllegalArgumentException e) {
-            ctx.response().setStatusCode(404)
-                    .end(new JsonObject().put("error", e.getMessage()).encode());
-        }
+        vertx.executeBlocking(() -> sessionService.viewFleet(sessionId), false)
+                .onComplete(ar -> {
+                    if (ar.succeeded()) {
+                        ctx.response().setStatusCode(200)
+                                .putHeader("Content-Type", "application/json")
+                                .end(ar.result().getJsonArray("fleet").encode());
+                    } else {
+                        respondError(ctx, ar.cause());
+                    }
+                });
     }
 
     private void handleViewScheduling(final RoutingContext ctx) {
         final SessionId sessionId = SessionId.of(ctx.pathParam("sessionId"));
         final String droneId = ctx.queryParams().get("droneId");
-        try {
-            final JsonObject result = sessionService.viewScheduling(sessionId, droneId);
-            ctx.response().setStatusCode(200)
-                    .putHeader("Content-Type", "application/json")
-                    .end(result.getJsonArray("scheduling").encode());
-        } catch (final SecurityException e) {
+        vertx.executeBlocking(() -> sessionService.viewScheduling(sessionId, droneId), false)
+                .onComplete(ar -> {
+                    if (ar.succeeded()) {
+                        ctx.response().setStatusCode(200)
+                                .putHeader("Content-Type", "application/json")
+                                .end(ar.result().getJsonArray("scheduling").encode());
+                    } else {
+                        respondError(ctx, ar.cause());
+                    }
+                });
+    }
+
+    private void respondError(final RoutingContext ctx, final Throwable cause) {
+        if (cause instanceof SecurityException) {
             ctx.response().setStatusCode(403)
-                    .end(new JsonObject().put("error", e.getMessage()).encode());
-        } catch (final IllegalArgumentException e) {
+                    .end(new JsonObject().put("error", cause.getMessage()).encode());
+        } else {
             ctx.response().setStatusCode(404)
-                    .end(new JsonObject().put("error", e.getMessage()).encode());
+                    .end(new JsonObject().put("error", causeMessage(cause)).encode());
         }
+    }
+
+    private static String causeMessage(final Throwable t) {
+        return t == null || t.getMessage() == null ? "Error" : t.getMessage();
     }
 }
