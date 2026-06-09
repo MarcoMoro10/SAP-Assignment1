@@ -14,11 +14,11 @@ public record FleetReservationResult(boolean reserved,
         return new FleetReservationResult(false, null, reason);
     }
 
-    public Optional<String> droneId() {
+    public Optional<String> droneIdOpt() {
         return Optional.ofNullable(droneId);
     }
 
-    public Optional<String> rejectionReason() {
+    public Optional<String> rejectionReasonOpt() {
         return Optional.ofNullable(rejectionReason);
     }
 }

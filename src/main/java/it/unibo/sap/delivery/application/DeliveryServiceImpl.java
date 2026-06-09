@@ -47,7 +47,6 @@ public class DeliveryServiceImpl implements DeliveryService {
 
     @Override
     public CreateDeliveryResult createDelivery(final CreateDeliveryCommand cmd) {
-        // 1. Build the request value objects (geocoding + input shape).
         final Coordinates pickupCoord = geocode(cmd.startStreet(), cmd.startNumber());
         final Coordinates destCoord = geocode(cmd.destinationStreet(), cmd.destinationNumber());
 
@@ -60,15 +59,17 @@ public class DeliveryServiceImpl implements DeliveryService {
         final DeliveryRequest request = new DeliveryRequest(parcel, pickup, destination, when, deadline);
         final Delivery delivery = Delivery.createRequest(SenderId.of(cmd.senderId()), request);
 
-        // 2. Validate (REQUESTED -> VALIDATED). Time validity is a precondition.
         validateShippingTime(when);
         delivery.validationPassed();
 
-        // 3. Critical-path policy: immediate -> assign + begin; scheduled -> reserve + schedule.
         final FleetFeasibilityRequest feas = new FleetFeasibilityRequest(
-                delivery.getId().value(), cmd.weightKg(),
-                pickupCoord.latitude(), pickupCoord.longitude(),
-                destCoord.latitude(), destCoord.longitude());
+                delivery.getId().value(),
+                cmd.weightKg(),
+                pickupCoord.latitude(),
+                pickupCoord.longitude(),
+                destCoord.latitude(),
+                destCoord.longitude(),
+                cmd.deadlineMinutes());
 
         final CreateDeliveryResult result;
         if (when.isImmediate()) {
@@ -85,12 +86,11 @@ public class DeliveryServiceImpl implements DeliveryService {
     private CreateDeliveryResult handleImmediate(final Delivery delivery, final FleetFeasibilityRequest feas) {
         final FleetAssignmentResult outcome = fleetPort.assignNearestDrone(feas);
         if (!outcome.assigned()) {
-            final String reason = outcome.rejectionReason().orElse("No drone available");
+            final String reason = outcome.rejectionReasonOpt().orElse("No drone available");
             delivery.reject(reason);
             throw new ValidationRejectedException(reason);
         }
-        final String droneId = outcome.droneId().orElseThrow();
-        // Policy: Validation Passed -> assign a drone; Drone Assigned -> begin.
+        final String droneId = outcome.droneIdOpt().orElseThrow();
         delivery.assignDrone(droneId);
         delivery.begin();
         fleetPort.startDelivery(droneId);
@@ -101,13 +101,12 @@ public class DeliveryServiceImpl implements DeliveryService {
                                                  final LocalDateTime slot) {
         final FleetReservationResult outcome = fleetPort.reserveDroneForSlot(feas, slot);
         if (!outcome.reserved()) {
-            final String reason = outcome.rejectionReason().orElse("No drone available for the requested time");
+            final String reason = outcome.rejectionReasonOpt().orElse("No drone available for the requested time");
             delivery.reject(reason);
             throw new ValidationRejectedException(reason);
         }
-        // Policy: a delivery is scheduled -> reserve a slot (done above) and mark SCHEDULED.
         delivery.schedule();
-        final String droneId = outcome.droneId().orElse(null);
+        final String droneId = outcome.droneIdOpt().orElse(null);
         return new CreateDeliveryResult(delivery.getId().value(), delivery.getStatus().name(), droneId);
     }
 
@@ -119,7 +118,7 @@ public class DeliveryServiceImpl implements DeliveryService {
         }
         final String droneId = delivery.getAssignedDroneId();
         final LocalDateTime slot = delivery.getRequest().requestedDateTime().scheduledAt();
-        delivery.cancel(); // SCHEDULED/ASSIGNED -> CANCELLED (guards in-flight)
+        delivery.cancel();
         if (droneId != null) {
             fleetPort.releaseReservation(droneId, deliveryId, slot);
         }
@@ -164,7 +163,7 @@ public class DeliveryServiceImpl implements DeliveryService {
             final LocalDateTime slot = d.getRequest().requestedDateTime().scheduledAt();
             final FleetAssignmentResult outcome = fleetPort.assignReservedDrone(d.getId().value(), slot);
             if (outcome.assigned()) {
-                final String droneId = outcome.droneId().orElseThrow();
+                final String droneId = outcome.droneIdOpt().orElseThrow();
                 d.assignDrone(droneId);
                 d.begin();
                 fleetPort.startDelivery(droneId);

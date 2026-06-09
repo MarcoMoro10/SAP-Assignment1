@@ -5,5 +5,6 @@ public record FleetFeasibilityRequest(String deliveryId,
                                       double pickupLatitude,
                                       double pickupLongitude,
                                       double destinationLatitude,
-                                      double destinationLongitude) {
+                                      double destinationLongitude,
+                                      long deadlineMinutes) {
 }
