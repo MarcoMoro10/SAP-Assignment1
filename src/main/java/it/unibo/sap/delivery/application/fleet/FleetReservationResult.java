@@ -1,4 +1,4 @@
-package it.unibo.sap.delivery.domain.fleet;
+package it.unibo.sap.delivery.application.fleet;
 
 import java.util.Optional;
 
