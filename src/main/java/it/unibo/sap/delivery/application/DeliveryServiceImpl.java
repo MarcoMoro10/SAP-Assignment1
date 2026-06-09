@@ -14,6 +14,7 @@ import it.unibo.sap.delivery.domain.deliveries.Deadline;
 import it.unibo.sap.delivery.domain.deliveries.Delivery;
 import it.unibo.sap.delivery.domain.deliveries.DeliveryId;
 import it.unibo.sap.delivery.domain.deliveries.DeliveryRequest;
+import it.unibo.sap.delivery.domain.deliveries.DeliverySchedulingView;
 import it.unibo.sap.delivery.domain.deliveries.DeliveryStatus;
 import it.unibo.sap.delivery.domain.deliveries.DeliveryTrackingView;
 import it.unibo.sap.delivery.domain.deliveries.Location;
@@ -179,8 +180,14 @@ public class DeliveryServiceImpl implements DeliveryService {
     }
 
     @Override
-    public List<FleetViews.ScheduledDeliveryView> viewScheduling(final String droneIdFilter) {
-        return fleetPort.schedulingView(droneIdFilter);
+    public List<DeliverySchedulingView> viewScheduling(final String droneIdFilter) {
+        return fleetPort.schedulingView(droneIdFilter).stream()
+                .map(dto -> new DeliverySchedulingView(
+                        dto.droneId(),
+                        dto.deliveryId(),
+                        dto.scheduledAt(),
+                        dto.status() == null ? null : DeliveryStatus.valueOf(dto.status())))
+                .collect(java.util.stream.Collectors.toList());
     }
 
     private Delivery loadOwned(final String deliveryId, final String senderId) {

@@ -1,6 +1,7 @@
 package it.unibo.sap.delivery.application;
 
 import it.unibo.sap.delivery.application.fleet.FleetViews;
+import it.unibo.sap.delivery.domain.deliveries.DeliverySchedulingView;
 import it.unibo.sap.delivery.domain.deliveries.DeliveryTrackingView;
 
 import java.time.LocalDateTime;
@@ -22,5 +23,5 @@ public interface DeliveryService extends it.unibo.sap.common.hexagonal.InputPort
 
     List<FleetViews.FleetDroneView> viewFleet();
 
-    List<FleetViews.ScheduledDeliveryView> viewScheduling(String droneIdFilter);
+    List<DeliverySchedulingView> viewScheduling(String droneIdFilter);
 }

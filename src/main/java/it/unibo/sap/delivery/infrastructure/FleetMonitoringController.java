@@ -9,6 +9,7 @@ import io.vertx.ext.web.RoutingContext;
 import it.unibo.sap.common.hexagonal.InputAdapter;
 import it.unibo.sap.delivery.application.DeliveryService;
 import it.unibo.sap.delivery.application.fleet.FleetViews;
+import it.unibo.sap.delivery.domain.deliveries.DeliverySchedulingView;
 
 import java.util.List;
 
@@ -61,14 +62,14 @@ public class FleetMonitoringController extends AbstractVerticle implements Input
 
     private void handleViewScheduling(final RoutingContext ctx) {
         final String droneId = ctx.queryParams().get("droneId");
-        final List<FleetViews.ScheduledDeliveryView> view = deliveryService.viewScheduling(droneId);
+        final List<DeliverySchedulingView> view = deliveryService.viewScheduling(droneId);
         final JsonArray array = new JsonArray();
-        for (final FleetViews.ScheduledDeliveryView s : view) {
+        for (final DeliverySchedulingView s : view) {
             array.add(new JsonObject()
                     .put("droneId", s.droneId())
                     .put("deliveryId", s.deliveryId())
                     .put("scheduledAt", s.scheduledAt() == null ? null : s.scheduledAt().toString())
-                    .put("status", s.status()));
+                    .put("status", s.status() == null ? null : s.status().name()));
         }
         ctx.response().setStatusCode(200)
                 .putHeader("Content-Type", "application/json")
