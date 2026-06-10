@@ -102,6 +102,8 @@ public class DeliveryServiceController extends AbstractVerticle implements Input
             error(ctx, 409, e.getMessage());
         } catch (final DeliveryNotFoundException e) {
             error(ctx, 404, e.getMessage());
+        } catch (final IllegalStateException e) {
+            error(ctx, 409, e.getMessage());
         }
     }
 
