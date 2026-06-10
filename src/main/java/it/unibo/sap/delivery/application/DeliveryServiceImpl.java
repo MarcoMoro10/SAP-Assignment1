@@ -181,12 +181,15 @@ public class DeliveryServiceImpl implements DeliveryService {
 
     @Override
     public List<DeliverySchedulingView> viewScheduling(final String droneIdFilter) {
-        return fleetPort.schedulingView(droneIdFilter).stream()
-                .map(dto -> new DeliverySchedulingView(
-                        dto.droneId(),
-                        dto.deliveryId(),
-                        dto.scheduledAt(),
-                        dto.status() == null ? null : DeliveryStatus.valueOf(dto.status())))
+        return deliveryRepository.findAll().stream()
+                .filter(d -> d.getStatus() == DeliveryStatus.SCHEDULED)
+                .filter(d -> droneIdFilter == null || droneIdFilter.isBlank()
+                        || droneIdFilter.equals(d.getAssignedDroneId()))
+                .map(d -> new DeliverySchedulingView(
+                        d.getAssignedDroneId(),
+                        d.getId().value(),
+                        d.getRequest().requestedDateTime().scheduledAt(),
+                        d.getStatus()))
                 .collect(java.util.stream.Collectors.toList());
     }
 
