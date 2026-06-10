@@ -1,22 +1,9 @@
-# Acceptance test of the delivery-service (Fleet is an internal module, not a
-# separate service — see architecture §3). These scenarios exercise the
-# delivery-service's public REST API in the When/Then, while the Given configures
-# the initial state of the internal Fleet module IN-PROCESS, through the domain
-# (drones and their reservations are created via the legitimate domain operations
-# and registered in the in-memory fleet repository, respecting invariants). There
-# is NO REST endpoint to set fleet/reservation state: the fleet has no network
-# surface of its own (§7.1), so the Given works against the domain directly. This
-# is declared so that reading the .feature does not suggest a "set fleet state" API.
-
 Feature: Delivery scheduling (automatic; Admin observes)
+
   Scheduling is performed automatically by the system: a validated scheduled delivery
   is planned and a drone slot is reserved by the system's policies and by the Scheduler
   (a Vert.x timer verticle). The Admin does NOT manage scheduling actively; the Admin
   only reviews the scheduled deliveries through a read-only view (Delivery Scheduling View).
-
-  # The "reserve a slot" and "no drone for the slot" scenarios below describe SYSTEM
-  # behaviour (automatic policies), not Admin commands. Only the first scenario is an
-  # Admin-facing (read-only) interaction.
 
   Scenario: An Admin reviews the daily schedule of a drone (read-only)
     Given I am logged in as admin "admin-1" with password "Admin#123"

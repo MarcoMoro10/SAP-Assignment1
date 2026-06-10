@@ -1,13 +1,5 @@
-# Acceptance test of the delivery-service (Fleet is an internal module, not a
-# separate service — see architecture §3). These scenarios exercise the
-# delivery-service's public REST API (the fleet-monitoring view) in the When/Then,
-# while the Given configures the initial state of the internal Fleet module
-# IN-PROCESS, through the domain (drones created via their legitimate
-# factory/constructor and registered in the in-memory fleet repository, respecting
-# invariants). There is NO REST endpoint to set fleet state: the fleet has no
-# network surface of its own (§7.1), so the Given works against the domain directly.
-
 Feature: Fleet monitoring
+
   As an Admin,
   I want to monitor the position and status of every drone
   so that I have an overview of the fleet operations.
