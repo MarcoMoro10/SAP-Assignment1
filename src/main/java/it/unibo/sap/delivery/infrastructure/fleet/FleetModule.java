@@ -147,6 +147,23 @@ public class FleetModule implements FleetPort, OutputAdapter {
     }
 
     @Override
+    public void completeDelivery(final String deliveryId) {
+        if (deliveryId == null) {
+            return;
+        }
+        final String droneId = deliveryToDrone.get(deliveryId);
+        if (droneId != null) {
+            drones.findById(DroneId.of(droneId)).ifPresent(drone -> {
+                drone.becomeAvailable();
+                drones.save(drone);
+            });
+        }
+        simulators.remove(deliveryId);
+        deliveryToDrone.remove(deliveryId);
+        deliveryDestination.remove(deliveryId);
+    }
+
+    @Override
     public List<FleetViews.FleetDroneView> fleetMonitoringView() {
         return drones.findAll().stream()
                 .map(d -> new FleetViews.FleetDroneView(

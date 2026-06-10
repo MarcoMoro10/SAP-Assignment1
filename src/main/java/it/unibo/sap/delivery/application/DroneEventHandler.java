@@ -64,6 +64,8 @@ public class DroneEventHandler {
         deliveryRepository.save(delivery);
         delivery.clearDomainEvents();
 
+        fleetPort.completeDelivery(deliveryId);
+
         pushToTrackers(delivery, latitude, longitude, 0L);
     }
 

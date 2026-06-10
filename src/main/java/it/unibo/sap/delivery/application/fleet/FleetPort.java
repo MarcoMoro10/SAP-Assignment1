@@ -5,13 +5,6 @@ import it.unibo.sap.common.hexagonal.OutputPort;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * FleetPort — the port the Deliveries module uses to collaborate with the Fleet
- * module. It is an application
- * OUTBOUND port of the delivery-service: the Deliveries use case depends on this
- * abstraction, while the implementation lives in a Fleet component and runs
- * in-process (no network).
- */
 public interface FleetPort extends OutputPort {
 
     FleetAssignmentResult assignNearestDrone(FleetFeasibilityRequest request);
@@ -23,6 +16,8 @@ public interface FleetPort extends OutputPort {
     void releaseReservation(String droneId, String deliveryId, LocalDateTime slot);
 
     void startDelivery(String droneId);
+
+    void completeDelivery(String deliveryId);
 
     List<FleetViews.FleetDroneView> fleetMonitoringView();
 
