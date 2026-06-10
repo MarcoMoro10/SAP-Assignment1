@@ -100,6 +100,22 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- ArchUnit: hexagonal/DDD architecture rules -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>1.3.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JUnit Platform Suite: required by the Cucumber @Suite runner -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <version>1.11.4</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
