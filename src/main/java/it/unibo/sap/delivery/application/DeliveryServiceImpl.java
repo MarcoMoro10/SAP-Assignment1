@@ -108,6 +108,9 @@ public class DeliveryServiceImpl implements DeliveryService {
         }
         delivery.schedule();
         final String droneId = outcome.droneIdOpt().orElse(null);
+        if (droneId != null) {
+            delivery.reserveDrone(droneId);
+        }
         return new CreateDeliveryResult(delivery.getId().value(), delivery.getStatus().name(), droneId);
     }
 

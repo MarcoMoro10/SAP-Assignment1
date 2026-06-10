@@ -73,6 +73,13 @@ public class Delivery implements AggregateRoot<DeliveryId> {
         registerEvent(new DeliveryScheduled(id, request.requestedDateTime().scheduledAt(), Instant.now()));
     }
 
+    public void reserveDrone(final String droneId) {
+        if (status != DeliveryStatus.SCHEDULED) {
+            throw new IllegalStateException("Can only reserve a drone for a scheduled delivery, not in " + status);
+        }
+        this.assignedDroneId = Objects.requireNonNull(droneId);
+    }
+
     public void assignDrone(final String droneId) {
         if (status != DeliveryStatus.VALIDATED && status != DeliveryStatus.SCHEDULED) {
             throw new IllegalStateException("Cannot assign a drone in status " + status);
