@@ -42,6 +42,10 @@ public class SessionServiceImpl implements SessionService {
     public JsonObject createDelivery(final SessionId sessionId, final JsonObject request) {
         final Session session = getActiveSession(sessionId);
         requireRole(session, "SENDER");
+        if (request == null) {
+            throw new IllegalArgumentException("Missing request body");
+        }
+        request.put("senderId", session.getAccountId());
         return deliveryService.createDelivery(request);
     }
 
