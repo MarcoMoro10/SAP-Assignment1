@@ -129,8 +129,23 @@ public class DeliveryServiceController extends AbstractVerticle implements Input
             return;
         }
         webSocket.textMessageHandler(openMsg -> {
-            final JsonObject obj = new JsonObject(openMsg);
+            if (openMsg == null || openMsg.isBlank()) {
+                return;
+            }
+            final JsonObject obj;
+            try {
+                obj = new JsonObject(openMsg);
+            } catch (final RuntimeException e) {
+                webSocket.writeTextMessage(new JsonObject()
+                        .put("error", "Expected JSON {\"deliveryId\":\"...\"}").encode());
+                return;
+            }
             final String deliveryId = obj.getString("deliveryId");
+            if (deliveryId == null || deliveryId.isBlank()) {
+                webSocket.writeTextMessage(new JsonObject()
+                        .put("error", "Missing deliveryId").encode());
+                return;
+            }
             final String address = VertxTrackingSessionEventObserver.TRACKING_ADDRESS_PREFIX + deliveryId;
             vertx.eventBus().consumer(address, msg ->
                     webSocket.writeTextMessage(((JsonObject) msg.body()).encode()));
