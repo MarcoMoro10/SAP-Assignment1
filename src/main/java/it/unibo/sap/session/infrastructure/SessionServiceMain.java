@@ -16,6 +16,7 @@ public class SessionServiceMain {
     static final int ACCOUNT_PORT = 8080;
     static final String DELIVERY_HOST = "localhost";
     static final int DELIVERY_PORT = 8082;
+    static final int FLEET_PORT = 8083;
 
     public static void main(final String[] args) {
         final Vertx vertx = Vertx.vertx();
@@ -24,7 +25,7 @@ public class SessionServiceMain {
         final AccountService accountServiceProxy =
                 new AccountServiceProxy(webClient, ACCOUNT_HOST, ACCOUNT_PORT);
         final DeliveryService deliveryServiceProxy =
-                new DeliveryServiceProxy(webClient, DELIVERY_HOST, DELIVERY_PORT);
+                new DeliveryServiceProxy(webClient, DELIVERY_HOST, DELIVERY_PORT, FLEET_PORT);
         final SessionRepository sessionRepository = new InMemorySessionRepository();
 
         final SessionService service = new SessionServiceImpl(

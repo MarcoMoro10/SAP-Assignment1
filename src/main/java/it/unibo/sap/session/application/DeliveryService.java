@@ -9,11 +9,11 @@ public interface DeliveryService extends OutputPort {
 
     JsonObject createDelivery(JsonObject request);
 
-    JsonObject cancelDelivery(String deliveryId);
+    JsonObject cancelDelivery(String deliveryId, String senderId);
 
-    Optional<JsonObject> getDelivery(String deliveryId);
+    Optional<JsonObject> getDelivery(String deliveryId, String senderId);
 
-    JsonObject trackDelivery(String deliveryId);
+    JsonObject trackDelivery(String deliveryId, String senderId);
 
     JsonObject viewFleet();
 

@@ -49,21 +49,21 @@ public class SessionServiceImpl implements SessionService {
     public JsonObject cancelDelivery(final SessionId sessionId, final String deliveryId) {
         final Session session = getActiveSession(sessionId);
         requireRole(session, "SENDER");
-        return deliveryService.cancelDelivery(deliveryId);
+        return deliveryService.cancelDelivery(deliveryId, session.getAccountId());
     }
 
     @Override
     public Optional<JsonObject> getDelivery(final SessionId sessionId, final String deliveryId) {
         final Session session = getActiveSession(sessionId);
         requireRole(session, "SENDER");
-        return deliveryService.getDelivery(deliveryId);
+        return deliveryService.getDelivery(deliveryId, session.getAccountId());
     }
 
     @Override
     public JsonObject trackDelivery(final SessionId sessionId, final String deliveryId) {
         final Session session = getActiveSession(sessionId);
         requireRole(session, "SENDER");
-        return deliveryService.trackDelivery(deliveryId);
+        return deliveryService.trackDelivery(deliveryId, session.getAccountId());
     }
 
     @Override

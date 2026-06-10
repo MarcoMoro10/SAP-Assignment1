@@ -13,11 +13,14 @@ public class DeliveryServiceProxy implements DeliveryService, OutputAdapter {
     private final WebClient webClient;
     private final String host;
     private final int port;
+    private final int fleetPort;
 
-    public DeliveryServiceProxy(final WebClient webClient, final String host, final int port) {
+    public DeliveryServiceProxy(final WebClient webClient, final String host,
+                                final int port, final int fleetPort) {
         this.webClient = webClient;
         this.host = host;
         this.port = port;
+        this.fleetPort = fleetPort;
     }
 
     @Override
@@ -40,10 +43,10 @@ public class DeliveryServiceProxy implements DeliveryService, OutputAdapter {
     }
 
     @Override
-    public JsonObject cancelDelivery(final String deliveryId) {
+    public JsonObject cancelDelivery(final String deliveryId, final String senderId) {
         final CompletableFuture<JsonObject> future = new CompletableFuture<>();
         webClient.post(port, host, "/api/v1/deliveries/" + deliveryId + "/cancel")
-                .send(ar -> {
+                .sendJsonObject(new JsonObject().put("senderId", senderId), ar -> {
                     if (ar.succeeded()) {
                         future.complete(ar.result().bodyAsJsonObject()
                                 .put("_statusCode", ar.result().statusCode()));
@@ -59,9 +62,10 @@ public class DeliveryServiceProxy implements DeliveryService, OutputAdapter {
     }
 
     @Override
-    public Optional<JsonObject> getDelivery(final String deliveryId) {
+    public Optional<JsonObject> getDelivery(final String deliveryId, final String senderId) {
         final CompletableFuture<Optional<JsonObject>> future = new CompletableFuture<>();
         webClient.get(port, host, "/api/v1/deliveries/" + deliveryId)
+                .addQueryParam("senderId", senderId)
                 .send(ar -> {
                     if (ar.succeeded() && ar.result().statusCode() == 200) {
                         future.complete(Optional.of(ar.result().bodyAsJsonObject()));
@@ -77,10 +81,10 @@ public class DeliveryServiceProxy implements DeliveryService, OutputAdapter {
     }
 
     @Override
-    public JsonObject trackDelivery(final String deliveryId) {
+    public JsonObject trackDelivery(final String deliveryId, final String senderId) {
         final CompletableFuture<JsonObject> future = new CompletableFuture<>();
         webClient.post(port, host, "/api/v1/deliveries/" + deliveryId + "/track")
-                .send(ar -> {
+                .sendJsonObject(new JsonObject().put("senderId", senderId), ar -> {
                     if (ar.succeeded()) {
                         future.complete(ar.result().bodyAsJsonObject());
                     } else {
@@ -97,7 +101,7 @@ public class DeliveryServiceProxy implements DeliveryService, OutputAdapter {
     @Override
     public JsonObject viewFleet() {
         final CompletableFuture<JsonObject> future = new CompletableFuture<>();
-        webClient.get(port, host, "/api/v1/fleet")
+        webClient.get(fleetPort, host, "/api/v1/admin/fleet")
                 .send(ar -> {
                     if (ar.succeeded()) {
                         future.complete(new JsonObject().put("fleet", ar.result().bodyAsJsonArray()));
@@ -115,11 +119,11 @@ public class DeliveryServiceProxy implements DeliveryService, OutputAdapter {
     @Override
     public JsonObject viewScheduling(final String droneId) {
         final CompletableFuture<JsonObject> future = new CompletableFuture<>();
-        String path = "/api/v1/scheduling";
+        String path = "/api/v1/admin/scheduling";
         if (droneId != null && !droneId.isBlank()) {
             path += "?droneId=" + droneId;
         }
-        webClient.get(port, host, path)
+        webClient.get(fleetPort, host, path)
                 .send(ar -> {
                     if (ar.succeeded()) {
                         future.complete(new JsonObject().put("scheduling", ar.result().bodyAsJsonArray()));
