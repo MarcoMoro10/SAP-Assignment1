@@ -138,7 +138,8 @@ public class FleetModule implements FleetPort, OutputAdapter {
             final String deliveryId = drone.getAssignedDeliveryId();
             final Coordinates destination = deliveryDestination.get(deliveryId);
             if (deliveryId != null && destination != null) {
-                final DroneSimulator sim = new DroneSimulator(drone, deliveryId, destination, telemetrySink);
+                final DroneSimulator sim = new DroneSimulator(drone, deliveryId, destination,
+                        telemetrySink, droneSpeedUnitsPerSecond * 0.5);
                 simulators.put(deliveryId, sim);
                 sim.start();
             }

@@ -6,21 +6,24 @@ import it.unibo.sap.delivery.domain.fleet.Position;
 
 public class DroneSimulator {
 
-    private static final long TICK_MILLIS = 1000;     // ~1s tick (§16.3)
-    private static final double STEP_FRACTION = 0.2;  // fraction of remaining route per tick
+    private static final long TICK_MILLIS = 1000;
+    private static final double STEP_FRACTION = 0.05;  // fraction of remaining route per tick
 
     private final Drone drone;
     private final String deliveryId;
     private final Coordinates destination;
     private final DroneTelemetrySink sink;
+    private final double arrivalThreshold;
     private volatile boolean stopped = false;
 
     public DroneSimulator(final Drone drone, final String deliveryId,
-                          final Coordinates destination, final DroneTelemetrySink sink) {
+                          final Coordinates destination, final DroneTelemetrySink sink,
+                          final double arrivalThreshold) {
         this.drone = drone;
         this.deliveryId = deliveryId;
         this.destination = destination;
         this.sink = sink;
+        this.arrivalThreshold = arrivalThreshold;
     }
 
     public void start() {
@@ -55,7 +58,7 @@ public class DroneSimulator {
     }
 
     private boolean hasArrived(final Coordinates current) {
-        return current.euclideanDistanceTo(destination) < 1e-4;
+        return current.euclideanDistanceTo(destination) < arrivalThreshold;
     }
 
     private Coordinates step(final Coordinates from, final Coordinates to) {

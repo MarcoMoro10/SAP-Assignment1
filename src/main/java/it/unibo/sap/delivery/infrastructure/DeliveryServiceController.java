@@ -130,7 +130,8 @@ public class DeliveryServiceController extends AbstractVerticle implements Input
         }
         webSocket.textMessageHandler(openMsg -> {
             if (openMsg == null || openMsg.isBlank()) {
-                return;
+                return; // ignore empty frames (e.g. keep-alive); the client must
+                // send {"deliveryId":"..."} to subscribe.
             }
             final JsonObject obj;
             try {
@@ -190,7 +191,13 @@ public class DeliveryServiceController extends AbstractVerticle implements Input
         return new JsonObject()
                 .put("deliveryId", v.deliveryId())
                 .put("status", v.status().name())
-                .put("estimatedTimeRemainingSeconds", v.estimatedTimeRemainingSeconds());
+                .put("estimatedTimeRemainingSeconds", v.estimatedTimeRemainingSeconds())
+                .put("estimatedTimeRemainingFormatted", formatEtr(v.estimatedTimeRemainingSeconds()));
+    }
+
+    private static String formatEtr(final long totalSeconds) {
+        final long s = Math.max(0, totalSeconds);
+        return String.format("%02d:%02d:%02d", s / 3600, (s % 3600) / 60, s % 60);
     }
 
     private void error(final RoutingContext ctx, final int status, final String message) {
