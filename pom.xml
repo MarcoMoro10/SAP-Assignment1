@@ -48,6 +48,20 @@
             <version>${jackson.version}</version>
         </dependency>
 
+        <!-- Jackson core + annotations pinned to the same version as databind,
+             to override the older jackson-core that vertx-core pulls in
+             transitively (otherwise NoSuchMethodError getNumberTypeFP at runtime). -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
         <!-- Jackson Java 8 date/time support -->
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
