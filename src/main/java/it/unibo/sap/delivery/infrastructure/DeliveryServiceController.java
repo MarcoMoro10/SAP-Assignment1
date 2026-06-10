@@ -170,6 +170,9 @@ public class DeliveryServiceController extends AbstractVerticle implements Input
         final String scheduledAtRaw = body.getString("scheduledAt");
         final LocalDateTime scheduledAt = scheduledAtRaw == null ? null : parseDateTime(scheduledAtRaw);
         final long deadlineMinutes = body.getLong("deadlineMinutes", 0L);
+        if (body.containsKey("deadlineMinutes") && deadlineMinutes <= 0) {
+            throw new BadRequestException("deadlineMinutes must be greater than 0");
+        }
         return new CreateDeliveryCommand(
                 senderId, weight,
                 start.getString("street"), start.getInteger("number", 0),
