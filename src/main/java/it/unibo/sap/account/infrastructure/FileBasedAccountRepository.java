@@ -64,8 +64,6 @@ public class FileBasedAccountRepository implements AccountRepository, OutputAdap
                 .findFirst();
     }
 
-    /* ---- persistence helpers ---- */
-
     private void load() {
         if (!Files.exists(file)) {
             return;

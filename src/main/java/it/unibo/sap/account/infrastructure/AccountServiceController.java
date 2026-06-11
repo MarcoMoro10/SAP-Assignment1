@@ -13,8 +13,6 @@ import it.unibo.sap.common.hexagonal.InputAdapter;
 
 public class AccountServiceController extends AbstractVerticle implements InputAdapter {
 
-    public static final int DEFAULT_PORT = 8080;
-
     private final AccountService accountService;
     private final int port;
 
