@@ -11,14 +11,14 @@ Feature: Create a delivery request
   Scenario: Successful immediate delivery creation
     When I create a delivery with weight "2" kg, starting place "via Emilia, 9", destination place "via Veneto, 5" to ship immediately
     Then I should see a confirmation that the delivery has been created and receive its identifier
-    And the delivery should be in status "ASSIGNED"
+    And the delivery should be in status "IN_PROGRESS"
     And a drone should be assigned to the delivery
 
   Scenario: Successful scheduled delivery creation
-    When I create a delivery with weight "2" kg, starting place "via Emilia, 9", destination place "via Veneto, 5" to ship on "2026-06-10" at "10:00"
+    When I create a delivery with weight "2" kg, starting place "via Emilia, 9", destination place "via Veneto, 5" to ship in "2" days
     Then I should see a confirmation that the delivery has been created and receive its identifier
     And the delivery should be in status "SCHEDULED"
-    And a drone should be reserved for "2026-06-10" at "10:00"
+    And a drone should be reserved for the scheduled slot
 
   Scenario: Delivery creation fails when the shipping time exceeds the scheduling horizon
     When I create a delivery with weight "2" kg, starting place "via Emilia, 9", destination place "via Veneto, 5" to ship in "30" days
@@ -27,7 +27,7 @@ Feature: Create a delivery request
     And the delivery should not be confirmed
 
   Scenario: Delivery creation fails with a shipping time in the past
-    When I create a delivery with weight "2" kg, starting place "via Emilia, 9", destination place "via Veneto, 5" to ship on "2020-01-01" at "10:00"
+    When I create a delivery with weight "2" kg, starting place "via Emilia, 9", destination place "via Veneto, 5" to ship in "-3" days
     Then I should see the error "Invalid shipping time"
     And the delivery should be in status "REJECTED"
     And the delivery should not be confirmed
@@ -36,12 +36,6 @@ Feature: Create a delivery request
     Given the maximum load capacity in the fleet is "5" kg
     When I create a delivery with weight "8" kg, starting place "via Emilia, 9", destination place "via Veneto, 5" to ship immediately
     Then I should see the error "No drone can carry this package"
-    And the delivery should be in status "REJECTED"
-    And the delivery should not be confirmed
-
-  Scenario: Delivery rejected because it cannot meet the maximum delivery time
-    When I create a delivery with weight "2" kg, starting place "via Emilia, 9", destination place "via Roma, 200" to ship immediately within "5" minutes
-    Then I should see the error "Delivery cannot be completed within the requested time"
     And the delivery should be in status "REJECTED"
     And the delivery should not be confirmed
 

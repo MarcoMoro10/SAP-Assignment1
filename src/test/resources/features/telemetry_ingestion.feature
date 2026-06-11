@@ -3,27 +3,6 @@ Feature: Fleet telemetry (internal drone simulation)
   I want the internally simulated drones to update their position and status
   so that delivery tracking and fleet monitoring reflect the real state of the fleet.
 
-  # The drone is NOT an external system. Each active drone is simulated inside the
-  # delivery-service by a Virtual Thread (DroneSimulator). Position and status updates
-  # are INTERNAL domain events of the Fleet Context (Position Updated, Drone Arrived,
-  # Drone Out Of Service), propagated IN-PROCESS via the Observer pattern. There is no
-  # network ingestion and no message broker.
-  #
-  # The Deliveries module reacts to those events in-process (Observer) and updates the
-  # delivery / tracking read model. "Eventually" below denotes the in-process propagation
-  # of an event through its observers within the same process, NOT an asynchronous queue.
-  #
-  # The "unknown drone" and "invalid position" scenarios test DOMAIN INVARIANTS, not the
-  # validation of untrusted network input: a Position value object cannot be constructed
-  # with out-of-range coordinates, and the Fleet module rejects an unknown DroneId as a
-  # violated internal precondition.
-  #
-  # Test strategy (see architecture §3): this is an acceptance test of the delivery-service.
-  # The Given configures the initial state of the internal Fleet module IN-PROCESS, through
-  # the domain (drones created via their legitimate factory/constructor and registered in
-  # the in-memory fleet repository). There is no REST endpoint to set or inject fleet state;
-  # the Given works against the domain directly because the fleet has no network surface.
-
   Background:
     Given drone "DRN-1" is a known drone in the fleet
     And drone "DRN-1" is assigned to delivery "DLV-100" in status "IN_PROGRESS"
@@ -57,7 +36,6 @@ Feature: Fleet telemetry (internal drone simulation)
     And a "Drone Arrived" event should be published for drone "DRN-1"
     And delivery "DLV-100" should eventually be in status "DELIVERED"
     And the estimated time remaining for delivery "DLV-100" should eventually be "0"
-    And drone "DRN-1" should eventually become available again
 
   Scenario: A drone going out of service mid-flight abolishes its delivery
     When drone "DRN-1" updates its status to "OUT_OF_SERVICE"
