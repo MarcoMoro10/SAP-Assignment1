@@ -20,10 +20,6 @@ public record Position(Coordinates coordinates, Instant observedAt) implements V
         return new Position(coordinates, Instant.now());
     }
 
-    public double distanceTo(final Position other) {
-        return this.coordinates.euclideanDistanceTo(other.coordinates);
-    }
-
     public double distanceTo(final Coordinates target) {
         return this.coordinates.euclideanDistanceTo(target);
     }

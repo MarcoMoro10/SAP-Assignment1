@@ -12,5 +12,4 @@ public interface TrackingSessionRegistry extends OutputPort {
 
     List<TrackingSession> findByDelivery(DeliveryId deliveryId);
 
-    void remove(TrackingSession session);
 }

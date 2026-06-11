@@ -174,14 +174,4 @@ public class FleetModule implements FleetPort, OutputAdapter {
                         d.isCarryingPackage()))
                 .collect(Collectors.toList());
     }
-
-    @Override
-    public List<FleetViews.ScheduledDeliveryView> schedulingView(final String droneIdFilter) {
-        return deliveryToDrone.entrySet().stream()
-                .filter(e -> droneIdFilter == null || droneIdFilter.isBlank()
-                        || droneIdFilter.equals(e.getValue()))
-                .map(e -> new FleetViews.ScheduledDeliveryView(
-                        e.getValue(), e.getKey(), null, null))
-                .collect(Collectors.toList());
-    }
 }

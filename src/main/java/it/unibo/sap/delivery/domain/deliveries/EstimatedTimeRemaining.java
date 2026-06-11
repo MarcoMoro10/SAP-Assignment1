@@ -30,7 +30,4 @@ public record EstimatedTimeRemaining(Duration value) implements ValueObject {
         return value.getSeconds();
     }
 
-    public boolean isZero() {
-        return value.isZero();
-    }
 }

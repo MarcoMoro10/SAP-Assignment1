@@ -21,5 +21,4 @@ public interface FleetPort extends OutputPort {
 
     List<FleetViews.FleetDroneView> fleetMonitoringView();
 
-    List<FleetViews.ScheduledDeliveryView> schedulingView(String droneIdFilter);
 }

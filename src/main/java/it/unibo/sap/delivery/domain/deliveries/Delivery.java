@@ -6,14 +6,12 @@ import it.unibo.sap.delivery.domain.deliveries.events.DeliveryAbolished;
 import it.unibo.sap.delivery.domain.deliveries.events.DeliveryBegun;
 import it.unibo.sap.delivery.domain.deliveries.events.DeliveryCancelled;
 import it.unibo.sap.delivery.domain.deliveries.events.DeliveryCompleted;
-import it.unibo.sap.delivery.domain.deliveries.events.DeliveryRequestCancelled;
 import it.unibo.sap.delivery.domain.deliveries.events.DeliveryRequestCreated;
 import it.unibo.sap.delivery.domain.deliveries.events.DeliveryScheduled;
 import it.unibo.sap.delivery.domain.deliveries.events.EstimatedTimeUpdated;
 import it.unibo.sap.delivery.domain.deliveries.events.ValidationDeliveryPassed;
 import it.unibo.sap.delivery.domain.deliveries.events.ValidationDeliveryRejected;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -66,7 +64,6 @@ public class Delivery implements AggregateRoot<DeliveryId> {
         registerEvent(new ValidationDeliveryRejected(id, reason, Instant.now()));
     }
 
-
     public void schedule() {
         requireStatus(DeliveryStatus.VALIDATED, "schedule");
         this.status = DeliveryStatus.SCHEDULED;
@@ -105,14 +102,6 @@ public class Delivery implements AggregateRoot<DeliveryId> {
         this.status = DeliveryStatus.DELIVERED;
         this.estimatedTimeRemaining = EstimatedTimeRemaining.zero();
         registerEvent(new DeliveryCompleted(id, Instant.now()));
-    }
-
-    public void cancelRequest() {
-        if (status != DeliveryStatus.REQUESTED && status != DeliveryStatus.VALIDATED) {
-            throw new IllegalStateException("cancelRequest only before reservation/assignment, not in " + status);
-        }
-        this.status = DeliveryStatus.CANCELLED;
-        registerEvent(new DeliveryRequestCancelled(id, Instant.now()));
     }
 
     public void cancel() {

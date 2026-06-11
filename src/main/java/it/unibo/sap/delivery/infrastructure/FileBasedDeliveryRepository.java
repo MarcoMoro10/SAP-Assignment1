@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,13 +64,6 @@ public class FileBasedDeliveryRepository implements DeliveryRepository, OutputAd
     public void deleteById(final DeliveryId id) {
         store.remove(id.value());
         flush();
-    }
-
-    @Override
-    public List<Delivery> findBySender(final SenderId senderId) {
-        return store.values().stream()
-                .filter(d -> d.isOwnedBy(senderId))
-                .collect(Collectors.toList());
     }
 
     private void load() {

@@ -32,10 +32,6 @@ public class TrackingSession implements Entity<TrackingSessionId> {
         return senderId;
     }
 
-    public Instant getOpenedAt() {
-        return openedAt;
-    }
-
     @Override
     public TrackingSessionId getId() {
         return id;

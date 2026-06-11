@@ -8,7 +8,6 @@ import it.unibo.sap.delivery.domain.fleet.events.DroneOutOfService;
 import it.unibo.sap.delivery.domain.fleet.events.DroneReserved;
 import it.unibo.sap.delivery.domain.fleet.events.PositionUpdated;
 import it.unibo.sap.delivery.domain.fleet.events.ReservationReleased;
-import it.unibo.sap.delivery.domain.fleet.events.StatusUpdated;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -42,12 +41,6 @@ public class Drone implements AggregateRoot<DroneId> {
         return new Drone(id, DroneStatus.AVAILABLE, position, payloadCapacity);
     }
 
-    public static Drone reconstitute(final DroneId id, final DroneStatus status,
-                                     final Position position, final PayloadCapacity payloadCapacity) {
-        return new Drone(id, status, position, payloadCapacity);
-    }
-
-
     public boolean isAvailable() {
         return status == DroneStatus.AVAILABLE;
     }
@@ -59,7 +52,6 @@ public class Drone implements AggregateRoot<DroneId> {
     public boolean isSlotFree(final LocalDateTime slot) {
         return !reservedSlots.contains(slot);
     }
-
 
 
     public void reserveSlot(final String deliveryId, final LocalDateTime slot) {
@@ -93,11 +85,6 @@ public class Drone implements AggregateRoot<DroneId> {
     public void updatePosition(final Position newPosition) {
         this.position = Objects.requireNonNull(newPosition);
         registerEvent(new PositionUpdated(id, newPosition, Instant.now()));
-    }
-
-    public void updateStatus(final DroneStatus newStatus) {
-        this.status = Objects.requireNonNull(newStatus);
-        registerEvent(new StatusUpdated(id, newStatus, Instant.now()));
     }
 
     public void arrived() {

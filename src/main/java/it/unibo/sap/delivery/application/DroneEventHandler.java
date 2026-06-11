@@ -71,7 +71,7 @@ public class DroneEventHandler {
 
     public void onDroneOutOfService(final String deliveryId, final String droneId) {
         if (deliveryId == null) {
-            return; // an idle drone out of service affects no delivery
+            return;
         }
         final Optional<Delivery> found = deliveryRepository.findById(DeliveryId.of(deliveryId));
         if (found.isEmpty()) {

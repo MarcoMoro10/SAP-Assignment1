@@ -27,11 +27,6 @@ public class InMemoryTrackingSessionRegistry implements TrackingSessionRegistry,
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public void remove(final TrackingSession session) {
-        store.remove(session.getId().value());
-    }
-
     public Optional<TrackingSession> findById(final String trackingSessionId) {
         return Optional.ofNullable(store.get(trackingSessionId));
     }

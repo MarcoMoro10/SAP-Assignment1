@@ -17,7 +17,4 @@ public record Deadline(Duration maxDuration) implements ValueObject {
         return new Deadline(Duration.ofMinutes(minutes));
     }
 
-    public boolean isMetBy(final Duration estimatedDuration) {
-        return estimatedDuration.compareTo(maxDuration) <= 0;
-    }
 }

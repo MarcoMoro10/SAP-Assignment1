@@ -15,7 +15,6 @@ public record DeliveryRequest(Package parcel,
         Objects.requireNonNull(pickupLocation, "DeliveryRequest pickupLocation must not be null");
         Objects.requireNonNull(destination, "DeliveryRequest destination must not be null");
         Objects.requireNonNull(requestedDateTime, "DeliveryRequest requestedDateTime must not be null");
-        // deadline may be null (optional)
     }
 
     public boolean isImmediate() {
