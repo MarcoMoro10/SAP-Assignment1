@@ -3,7 +3,6 @@ package it.unibo.sap.session.domain;
 import it.unibo.sap.common.ddd.AggregateRoot;
 import it.unibo.sap.common.ddd.DomainEvent;
 import it.unibo.sap.session.domain.events.SessionCreated;
-import it.unibo.sap.session.domain.events.SessionExpired;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -35,18 +34,6 @@ public class Session implements AggregateRoot<SessionId> {
         return session;
     }
 
-    public static Session reconstitute(final SessionId id, final String accountId, final String role,
-                                       final Instant createdAt, final boolean active) {
-        return new Session(id, accountId, role, createdAt, active);
-    }
-
-    public void expire() {
-        if (this.active) {
-            this.active = false;
-            registerEvent(new SessionExpired(this.id, Instant.now()));
-        }
-    }
-
     public boolean isActive() {
         return active;
     }
@@ -57,10 +44,6 @@ public class Session implements AggregateRoot<SessionId> {
 
     public String getRole() {
         return role;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
     }
 
     @Override

@@ -13,8 +13,6 @@ import it.unibo.sap.session.domain.SessionId;
 
 public class SessionServiceController extends AbstractVerticle implements InputAdapter {
 
-    public static final int DEFAULT_PORT = 8081;
-
     private final SessionService sessionService;
     private final int port;
 
