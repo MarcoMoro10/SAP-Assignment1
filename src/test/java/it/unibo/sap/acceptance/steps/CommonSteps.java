@@ -71,22 +71,4 @@ public class CommonSteps {
         }
     }
 
-    /** Used by other step classes to ensure an authenticated sender outside a Background. */
-    public static void ensureSenderSession(final String username, final String password) {
-        final TestServices services = TestServices.get();
-        final CompletableFuture<Void> done = new CompletableFuture<>();
-        services.webClient()
-                .post(services.accountPort(), services.host(), "/api/v1/accounts")
-                .sendJsonObject(new JsonObject().put("username", username).put("password", password),
-                        ar -> done.complete(null));
-        try {
-            done.get(10, TimeUnit.SECONDS);
-        } catch (final Exception e) {
-            throw new IllegalStateException("Failed to register test user", e);
-        }
-        final Session s = services.sessionService().login(username, password);
-        World.get().setSessionId(s.getId());
-        World.get().setRole(s.getRole());
-        assertNotNull(World.get().sessionId());
-    }
 }

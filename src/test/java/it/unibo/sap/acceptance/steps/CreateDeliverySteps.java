@@ -53,12 +53,6 @@ public class CreateDeliverySteps {
         create(weight, start, dest, true, null, 0);
     }
 
-    @When("I create a delivery with weight {string} kg, starting place {string}, destination place {string} to ship on {string} at {string}")
-    public void createScheduled(final String weight, final String start, final String dest,
-                                final String date, final String time) {
-        final LocalDateTime when = LocalDateTime.parse(date + "T" + time + ":00");
-        create(weight, start, dest, false, when, 0);
-    }
 
     @When("I create a delivery with weight {string} kg, starting place {string}, destination place {string} to ship in {string} days")
     public void createScheduledInDays(final String weight, final String start, final String dest, final String days) {
