@@ -111,7 +111,6 @@ public final class TestServices {
         deployAndWait(new VertxSchedulerVerticle(deliveryService));
     }
 
-    /** Deploys a Verticle and blocks until it is actually started. */
     private void deployAndWait(final io.vertx.core.Verticle verticle) {
         final CountDownLatch latch = new CountDownLatch(1);
         vertx.deployVerticle(verticle, ar -> latch.countDown());
@@ -125,7 +124,6 @@ public final class TestServices {
         }
     }
 
-    /** A throwaway file path so tests never touch the real data/ files. */
     private static String tempFile(final String prefix) {
         try {
             final Path dir = Files.createTempDirectory(prefix);
