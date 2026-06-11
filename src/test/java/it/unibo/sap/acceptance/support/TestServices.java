@@ -4,9 +4,12 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import it.unibo.sap.account.application.AccountServiceImpl;
 import it.unibo.sap.account.infrastructure.AccountServiceController;
+import it.unibo.sap.account.infrastructure.AdminSeeder;
 import it.unibo.sap.account.infrastructure.FileBasedAccountRepository;
+import it.unibo.sap.delivery.application.DeliveryRepository;
 import it.unibo.sap.delivery.application.DeliveryServiceImpl;
 import it.unibo.sap.delivery.application.DroneEventHandler;
+import it.unibo.sap.delivery.application.TrackingSessionRegistry;
 import it.unibo.sap.delivery.infrastructure.DeliveryServiceController;
 import it.unibo.sap.delivery.infrastructure.FileBasedDeliveryRepository;
 import it.unibo.sap.delivery.infrastructure.FleetMonitoringController;
@@ -30,6 +33,17 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Acceptance-test composition root for the "Shipping on the Air" prototype.
+ *
+ * <p>It boots the three services in-process on dedicated test ports and wires the
+ * session-service with the REAL REST proxies, exactly like production. The few extra
+ * getters and {@link #resetFleet()} below are TEST-ONLY seams: they expose the internal
+ * delivery-side collaborators (drone repository, fleet module, delivery repository,
+ * tracking registry and the in-process telemetry handler) so that acceptance steps can
+ * configure and observe the Fleet bounded context directly, in-process -- which is the
+ * only legitimate surface the fleet has (it exposes no network endpoint of its own).
+ */
 public final class TestServices {
 
     // Test ports, distinct from production (8080/8082/8083) to avoid clashes.
@@ -45,6 +59,13 @@ public final class TestServices {
     private final WebClient webClient;
     private final SessionService sessionService;
 
+    private FileBasedAccountRepository accountRepository;
+    private InMemoryDroneRepository droneRepository;
+    private FleetModule fleetModule;
+    private DeliveryRepository deliveryRepository;
+    private TrackingSessionRegistry trackingRegistry;
+    private DroneEventHandler droneEventHandler;
+
     private TestServices() {
         this.vertx = Vertx.vertx();
         this.webClient = WebClient.create(vertx);
@@ -52,7 +73,6 @@ public final class TestServices {
         startAccountService();
         startDeliveryService();
 
-        // session-service wired with REAL proxies pointing at the test ports
         final var accountProxy = new AccountServiceProxy(webClient, HOST, ACCOUNT_PORT);
         final var deliveryProxy = new DeliveryServiceProxy(webClient, HOST, DELIVERY_PORT, FLEET_PORT);
         this.sessionService = new SessionServiceImpl(
@@ -82,25 +102,80 @@ public final class TestServices {
         return ACCOUNT_PORT;
     }
 
+    public InMemoryDroneRepository droneRepository() {
+        return droneRepository;
+    }
+
+    public FleetModule fleetModule() {
+        return fleetModule;
+    }
+
+    public DeliveryRepository deliveryRepository() {
+        return deliveryRepository;
+    }
+
+    public TrackingSessionRegistry trackingRegistry() {
+        return trackingRegistry;
+    }
+
+    public DroneEventHandler droneEventHandler() {
+        return droneEventHandler;
+    }
+
+    public double droneSpeed() {
+        return DRONE_SPEED;
+    }
+
+    /**
+     * Restores the seeded fleet (DRN-1, DRN-2, DRN-3, all AVAILABLE) before each scenario,
+     * so drone state does not leak across scenarios. {@code FleetSeeder.seed} re-saves the
+     * three drones by id, overwriting any status/assignment they accumulated.
+     */
+    public void resetFleet() {
+        FleetSeeder.seed(droneRepository);
+    }
+
+    /** Clears all deliveries before each scenario so scheduling/tracking counts are deterministic. */
+    public void resetDeliveries() {
+        for (final var delivery : deliveryRepository.findAll()) {
+            deliveryRepository.deleteById(delivery.getId());
+        }
+    }
+
     private void startAccountService() {
-        final var repository = new FileBasedAccountRepository(tempFile("accounts-test"));
-        final var service = new AccountServiceImpl(repository);
+        this.accountRepository = new FileBasedAccountRepository(tempFile("accounts-test"));
+        AdminSeeder.seed(accountRepository); // seed admin-1 / Admin#123 for admin scenarios
+        final var service = new AccountServiceImpl(accountRepository);
         deployAndWait(new AccountServiceController(service, ACCOUNT_PORT));
     }
 
+    /**
+     * Removes every non-admin account before each scenario so registration/login scenarios
+     * are order-independent (e.g. "Successful registration" must always create "user-1"
+     * fresh, never colliding with a leftover from a previous scenario).
+     */
+    public void resetAccounts() {
+        for (final var account : accountRepository.findAll()) {
+            if (account.getRole() != it.unibo.sap.account.domain.Role.ADMIN) {
+                accountRepository.deleteById(account.getId());
+            }
+        }
+        AdminSeeder.seed(accountRepository); // ensure admin still present
+    }
+
     private void startDeliveryService() {
-        final var deliveryRepository = new FileBasedDeliveryRepository(tempFile("deliveries-test"));
-        final var trackingRegistry = new InMemoryTrackingSessionRegistry();
+        this.deliveryRepository = new FileBasedDeliveryRepository(tempFile("deliveries-test"));
+        this.trackingRegistry = new InMemoryTrackingSessionRegistry();
         final var geocoding = new GeocodingService();
         final var trackingObserver = new VertxTrackingSessionEventObserver(vertx.eventBus());
 
-        final var droneRepository = new InMemoryDroneRepository();
-        final var fleetModule = new FleetModule(droneRepository, DRONE_SPEED);
+        this.droneRepository = new InMemoryDroneRepository();
+        this.fleetModule = new FleetModule(droneRepository, DRONE_SPEED);
 
         final var deliveryService = new DeliveryServiceImpl(
                 deliveryRepository, fleetModule, geocoding, trackingRegistry);
 
-        final var droneEventHandler = new DroneEventHandler(
+        this.droneEventHandler = new DroneEventHandler(
                 deliveryRepository, trackingRegistry, trackingObserver, fleetModule, DRONE_SPEED);
         fleetModule.setTelemetrySink(new DroneEventHandlerSink(droneEventHandler));
 

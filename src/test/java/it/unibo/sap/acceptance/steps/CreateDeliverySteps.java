@@ -5,16 +5,13 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.vertx.core.json.JsonObject;
+import it.unibo.sap.acceptance.support.FleetTestFixture;
 import it.unibo.sap.acceptance.support.TestServices;
+import it.unibo.sap.acceptance.support.World;
 import it.unibo.sap.session.application.SessionService;
-import it.unibo.sap.session.domain.Session;
-import it.unibo.sap.session.domain.SessionId;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -24,19 +21,8 @@ public class CreateDeliverySteps {
 
     private final TestServices services = TestServices.get();
     private final SessionService session = services.sessionService();
-
-    private SessionId sessionId;
-    private JsonObject lastResponse;
-    private String lastError = "";
-
-    // ---------- Given ----------
-
-    @Given("I am logged in as {string} with password {string}")
-    public void iAmLoggedIn(final String username, final String password) {
-        registerIfNeeded(username, password);
-        final Session s = session.login(username, password);
-        this.sessionId = s.getId();
-    }
+    private final World world = World.get();
+    private final FleetTestFixture fleet = new FleetTestFixture(services.droneRepository());
 
     @And("I am on the delivery creation page")
     public void onTheCreationPage() {
@@ -45,82 +31,73 @@ public class CreateDeliverySteps {
 
     @And("deliveries can be scheduled at most {string} days in advance")
     public void schedulingHorizon(final String days) {
-        // The horizon is a domain constant; this Given documents the assumption.
+        // The horizon is a domain constant (7 days); this Given documents the assumption.
     }
 
     @Given("the maximum load capacity in the fleet is {string} kg")
     public void maxLoadCapacity(final String kg) {
-        // The seeded fleet's heaviest drone carries 10 kg; scenarios using "8 kg"
-        // exceed the per-drone capacity, which is what the assertion below checks.
+        // Shrink every drone's capacity to this ceiling so a heavier package is rejected
+        // by the domain with "No drone can carry this package".
+        fleet.capacityCeiling(Double.parseDouble(kg));
     }
 
     @Given("all drones in the fleet are currently busy")
     public void allDronesBusy() {
-        // Documented assumption: with the seeded fleet this is approximated by the
-        // domain rejecting when no drone can serve the request.
+        // Park the whole fleet OUT_OF_SERVICE so no drone is assignable: the domain then
+        // rejects an immediate request with "No drone available".
+        fleet.emptyFleet();
     }
-
-    // ---------- When ----------
 
     @When("I create a delivery with weight {string} kg, starting place {string}, destination place {string} to ship immediately")
     public void createImmediate(final String weight, final String start, final String dest) {
-        create(weight, start, dest, true, null, 60);
-    }
-
-    @When("I create a delivery with weight {string} kg, starting place {string}, destination place {string} to ship immediately within {string} minutes")
-    public void createImmediateWithin(final String weight, final String start, final String dest, final String minutes) {
-        create(weight, start, dest, true, null, Long.parseLong(minutes));
+        create(weight, start, dest, true, null, 0);
     }
 
     @When("I create a delivery with weight {string} kg, starting place {string}, destination place {string} to ship on {string} at {string}")
     public void createScheduled(final String weight, final String start, final String dest,
                                 final String date, final String time) {
-        final LocalDateTime when = LocalDateTime.of(LocalDate.parse(date), LocalTime.parse(time));
-        create(weight, start, dest, false, when, 60);
+        final LocalDateTime when = LocalDateTime.parse(date + "T" + time + ":00");
+        create(weight, start, dest, false, when, 0);
     }
 
     @When("I create a delivery with weight {string} kg, starting place {string}, destination place {string} to ship in {string} days")
     public void createScheduledInDays(final String weight, final String start, final String dest, final String days) {
         final LocalDateTime when = LocalDateTime.now().plusDays(Long.parseLong(days));
-        create(weight, start, dest, false, when, 60);
+        create(weight, start, dest, false, when, 0);
     }
-
-    // ---------- Then ----------
 
     @Then("I should see a confirmation that the delivery has been created and receive its identifier")
     public void confirmationWithId() {
-        assertTrue(lastError.isEmpty(), "expected success but got error: " + lastError);
-        assertNotNull(lastResponse.getString("deliveryId"));
+        assertTrue(world.lastError().isEmpty(), "expected success but got error: " + world.lastError());
+        assertNotNull(world.lastResponse());
+        assertNotNull(world.lastResponse().getString("deliveryId"));
     }
 
     @And("the delivery should be in status {string}")
     public void deliveryInStatus(final String expected) {
         if ("REJECTED".equals(expected)) {
-            assertTrue(!lastError.isEmpty(), "expected the creation to be rejected");
+            assertTrue(!world.lastError().isEmpty(), "expected the creation to be rejected");
             return;
         }
-        assertEquals(expected, lastResponse.getString("status"));
+        assertNotNull(world.lastResponse(), "expected a created delivery but got error: " + world.lastError());
+        assertEquals(expected, world.lastResponse().getString("status"));
     }
 
     @And("a drone should be assigned to the delivery")
     public void droneAssigned() {
-        assertNotNull(lastResponse.getString("assignedDroneId"));
+        assertNotNull(world.lastResponse());
+        assertNotNull(world.lastResponse().getString("assignedDroneId"));
     }
 
-    @And("a drone should be reserved for {string} at {string}")
-    public void droneReserved(final String date, final String time) {
-        assertEquals("SCHEDULED", lastResponse.getString("status"));
-    }
-
-    @Then("I should see the error {string}")
-    public void shouldSeeError(final String message) {
-        assertTrue(lastError.contains(message),
-                "expected error containing '" + message + "' but was: '" + lastError + "'");
+    @And("a drone should be reserved for the scheduled slot")
+    public void droneReservedForSlot() {
+        assertNotNull(world.lastResponse());
+        assertEquals("SCHEDULED", world.lastResponse().getString("status"));
     }
 
     @And("the delivery should not be confirmed")
     public void notConfirmed() {
-        assertTrue(lastResponse == null || lastResponse.getString("deliveryId") == null,
+        assertTrue(world.lastResponse() == null || world.lastResponse().getString("deliveryId") == null,
                 "delivery should not have been created");
     }
 
@@ -136,36 +113,27 @@ public class CreateDeliverySteps {
                 .put("destinationPlace", new JsonObject()
                         .put("street", d[0].trim())
                         .put("number", d.length > 1 ? Integer.parseInt(d[1].trim()) : 0))
-                .put("immediate", immediate)
-                .put("deadlineMinutes", deadlineMinutes);
+                .put("immediate", immediate);
+        if (deadlineMinutes > 0) {
+            body.put("deadlineMinutes", deadlineMinutes);
+        }
         if (when != null) {
             body.put("scheduledAt", when.toString());
         }
-        lastResponse = null;
-        lastError = "";
+        world.clearOutcome();
         try {
-            final JsonObject result = session.createDelivery(sessionId, body);
-            // The orchestrator returns the body; an error surfaces as an "error" field.
+            final JsonObject result = session.createDelivery(world.sessionId(), body);
+            // The delivery REST proxy returns the body plus "_statusCode"; an error body
+            // carries an "error" field and a non-2xx status code.
             if (result != null && result.containsKey("error")) {
-                lastError = result.getString("error");
+                world.setLastError(result.getString("error"));
+            } else if (result != null && result.getInteger("_statusCode", 200) >= 400) {
+                world.setLastError(result.getString("error", "request failed"));
             } else {
-                lastResponse = result;
+                world.setLastResponse(result);
             }
         } catch (final RuntimeException e) {
-            lastError = e.getMessage() == null ? e.toString() : e.getMessage();
-        }
-    }
-
-    private void registerIfNeeded(final String username, final String password) {
-        final CompletableFuture<Void> done = new CompletableFuture<>();
-        services.webClient()
-                .post(services.accountPort(), services.host(), "/api/v1/accounts")
-                .sendJsonObject(new JsonObject().put("username", username).put("password", password),
-                        ar -> done.complete(null)); // 201 created or 409 already exists: both fine
-        try {
-            done.get(10, TimeUnit.SECONDS);
-        } catch (final Exception e) {
-            throw new IllegalStateException("Failed to register test user", e);
+            world.setLastError(e.getMessage() == null ? e.toString() : e.getMessage());
         }
     }
 }
