@@ -46,7 +46,6 @@ import java.util.concurrent.TimeUnit;
  */
 public final class TestServices {
 
-    // Test ports, distinct from production (8080/8082/8083) to avoid clashes.
     private static final String HOST = "localhost";
     private static final int ACCOUNT_PORT = 9080;
     private static final int DELIVERY_PORT = 9082;
@@ -120,10 +119,6 @@ public final class TestServices {
 
     public DroneEventHandler droneEventHandler() {
         return droneEventHandler;
-    }
-
-    public double droneSpeed() {
-        return DRONE_SPEED;
     }
 
     /**

@@ -134,10 +134,6 @@ public final class FleetTestFixture {
         return findOrFail(droneId).getPosition().coordinates();
     }
 
-    public boolean isCarrying(final String droneId) {
-        return findOrFail(droneId).isCarryingPackage();
-    }
-
     /** Count of drones that are not parked OUT_OF_SERVICE (the "active" fleet). */
     public long activeCount() {
         return drones.findAll().stream()
