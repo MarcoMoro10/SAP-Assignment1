@@ -15,11 +15,11 @@ public class DeliveryRecord {
     public double destinationLon;
 
     public boolean immediate;
-    public String scheduledAt;      // ISO-8601 LocalDateTime, or null
-    public long deadlineMinutes;    // <= 0 => no deadline
+    public String scheduledAt;
+    public long deadlineMinutes;
 
     public String status;
-    public String assignedDroneId;  // may be null
+    public String assignedDroneId;
     public long etrSeconds;
 
     public DeliveryRecord() {

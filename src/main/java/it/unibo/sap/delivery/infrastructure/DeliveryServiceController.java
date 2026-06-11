@@ -21,8 +21,6 @@ import java.time.LocalDateTime;
 
 public class DeliveryServiceController extends AbstractVerticle implements InputAdapter {
 
-    public static final int DEFAULT_PORT = 8082;
-
     private final DeliveryService deliveryService;
     private final int port;
 
@@ -132,8 +130,7 @@ public class DeliveryServiceController extends AbstractVerticle implements Input
         }
         webSocket.textMessageHandler(openMsg -> {
             if (openMsg == null || openMsg.isBlank()) {
-                return; // ignore empty frames (e.g. keep-alive); the client must
-                // send {"deliveryId":"..."} to subscribe.
+                return;
             }
             final JsonObject obj;
             try {

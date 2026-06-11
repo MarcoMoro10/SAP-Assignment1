@@ -20,8 +20,4 @@ public class DroneEventHandlerSink implements DroneTelemetrySink {
         handler.onDroneArrived(deliveryId, latitude, longitude);
     }
 
-    @Override
-    public void onOutOfService(final String deliveryId, final String droneId) {
-        handler.onDroneOutOfService(deliveryId, droneId);
-    }
 }

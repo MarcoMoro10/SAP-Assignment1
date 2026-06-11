@@ -6,5 +6,4 @@ public interface DroneTelemetrySink {
 
     void onArrived(String deliveryId, double latitude, double longitude);
 
-    void onOutOfService(String deliveryId, String droneId);
 }

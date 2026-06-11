@@ -49,7 +49,6 @@ public class FleetModule implements FleetPort, OutputAdapter {
             return FleetAssignmentResult.rejected("No drone can carry this package");
         }
 
-        // Time feasibility: estimated duration vs deadline (if any).
         if (req.deadlineMinutes() > 0) {
             final double distance = pickup.euclideanDistanceTo(destination);
             final long estimatedSeconds = Math.round(distance / droneSpeedUnitsPerSecond);
