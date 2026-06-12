@@ -1,12 +1,15 @@
 package it.unibo.sap.session.infrastructure;
 
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import it.unibo.sap.common.hexagonal.OutputAdapter;
 import it.unibo.sap.session.application.DeliveryService;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 public class DeliveryServiceProxy implements DeliveryService, OutputAdapter {
 
@@ -25,40 +28,18 @@ public class DeliveryServiceProxy implements DeliveryService, OutputAdapter {
 
     @Override
     public JsonObject createDelivery(final JsonObject request) {
-        final CompletableFuture<JsonObject> future = new CompletableFuture<>();
-        webClient.post(port, host, "/api/v1/deliveries")
-                .sendJsonObject(request, ar -> {
-                    if (ar.succeeded()) {
-                        future.complete(ar.result().bodyAsJsonObject()
-                                .put("_statusCode", ar.result().statusCode()));
-                    } else {
-                        future.completeExceptionally(ar.cause());
-                    }
-                });
-        try {
-            return future.get();
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to contact delivery-service", e);
-        }
+        return blocking(
+                webClient.post(port, host, "/api/v1/deliveries"),
+                request,
+                resp -> resp.bodyAsJsonObject().put("_statusCode", resp.statusCode()));
     }
 
     @Override
     public JsonObject cancelDelivery(final String deliveryId, final String senderId) {
-        final CompletableFuture<JsonObject> future = new CompletableFuture<>();
-        webClient.post(port, host, "/api/v1/deliveries/" + deliveryId + "/cancel")
-                .sendJsonObject(new JsonObject().put("senderId", senderId), ar -> {
-                    if (ar.succeeded()) {
-                        future.complete(ar.result().bodyAsJsonObject()
-                                .put("_statusCode", ar.result().statusCode()));
-                    } else {
-                        future.completeExceptionally(ar.cause());
-                    }
-                });
-        try {
-            return future.get();
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to contact delivery-service", e);
-        }
+        return blocking(
+                webClient.post(port, host, "/api/v1/deliveries/" + deliveryId + "/cancel"),
+                new JsonObject().put("senderId", senderId),
+                resp -> resp.bodyAsJsonObject().put("_statusCode", resp.statusCode()));
     }
 
     @Override
@@ -82,55 +63,58 @@ public class DeliveryServiceProxy implements DeliveryService, OutputAdapter {
 
     @Override
     public JsonObject trackDelivery(final String deliveryId, final String senderId) {
-        final CompletableFuture<JsonObject> future = new CompletableFuture<>();
-        webClient.post(port, host, "/api/v1/deliveries/" + deliveryId + "/track")
-                .sendJsonObject(new JsonObject().put("senderId", senderId), ar -> {
-                    if (ar.succeeded()) {
-                        future.complete(ar.result().bodyAsJsonObject());
-                    } else {
-                        future.completeExceptionally(ar.cause());
-                    }
-                });
-        try {
-            return future.get();
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to contact delivery-service", e);
-        }
+        return blocking(
+                webClient.post(port, host, "/api/v1/deliveries/" + deliveryId + "/track"),
+                new JsonObject().put("senderId", senderId),
+                HttpResponse::bodyAsJsonObject);
     }
 
     @Override
     public JsonObject viewFleet() {
-        final CompletableFuture<JsonObject> future = new CompletableFuture<>();
-        webClient.get(fleetPort, host, "/api/v1/admin/fleet")
-                .send(ar -> {
-                    if (ar.succeeded()) {
-                        future.complete(new JsonObject().put("fleet", ar.result().bodyAsJsonArray()));
-                    } else {
-                        future.completeExceptionally(ar.cause());
-                    }
-                });
-        try {
-            return future.get();
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to contact delivery-service", e);
-        }
+        return blocking(
+                webClient.get(fleetPort, host, "/api/v1/admin/fleet"),
+                resp -> new JsonObject().put("fleet", resp.bodyAsJsonArray()));
     }
 
     @Override
     public JsonObject viewScheduling(final String droneId) {
-        final CompletableFuture<JsonObject> future = new CompletableFuture<>();
         String path = "/api/v1/admin/scheduling";
         if (droneId != null && !droneId.isBlank()) {
             path += "?droneId=" + droneId;
         }
-        webClient.get(fleetPort, host, path)
-                .send(ar -> {
-                    if (ar.succeeded()) {
-                        future.complete(new JsonObject().put("scheduling", ar.result().bodyAsJsonArray()));
-                    } else {
-                        future.completeExceptionally(ar.cause());
-                    }
-                });
+        return blocking(
+                webClient.get(fleetPort, host, path),
+                resp -> new JsonObject().put("scheduling", resp.bodyAsJsonArray()));
+    }
+
+    private JsonObject blocking(final HttpRequest<io.vertx.core.buffer.Buffer> request,
+                                final Function<HttpResponse<io.vertx.core.buffer.Buffer>, JsonObject> onSuccess) {
+        final CompletableFuture<JsonObject> future = new CompletableFuture<>();
+        request.send(ar -> {
+            if (ar.succeeded()) {
+                future.complete(onSuccess.apply(ar.result()));
+            } else {
+                future.completeExceptionally(ar.cause());
+            }
+        });
+        return await(future);
+    }
+
+    private JsonObject blocking(final HttpRequest<io.vertx.core.buffer.Buffer> request,
+                                final JsonObject body,
+                                final Function<HttpResponse<io.vertx.core.buffer.Buffer>, JsonObject> onSuccess) {
+        final CompletableFuture<JsonObject> future = new CompletableFuture<>();
+        request.sendJsonObject(body, ar -> {
+            if (ar.succeeded()) {
+                future.complete(onSuccess.apply(ar.result()));
+            } else {
+                future.completeExceptionally(ar.cause());
+            }
+        });
+        return await(future);
+    }
+
+    private JsonObject await(final CompletableFuture<JsonObject> future) {
         try {
             return future.get();
         } catch (final Exception e) {

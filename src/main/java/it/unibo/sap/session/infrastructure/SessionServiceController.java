@@ -85,104 +85,79 @@ public class SessionServiceController extends AbstractVerticle implements InputA
     private void handleCreateDelivery(final RoutingContext ctx) {
         final SessionId sessionId = SessionId.of(ctx.pathParam("sessionId"));
         final JsonObject body = ctx.body().asJsonObject();
-        vertx.executeBlocking(() -> sessionService.createDelivery(sessionId, body), false)
-                .onComplete(ar -> {
-                    if (ar.succeeded()) {
-                        final JsonObject result = ar.result();
-                        final int statusCode = result.containsKey("_statusCode")
-                                ? result.getInteger("_statusCode") : 201;
-                        result.remove("_statusCode");
-                        ctx.response().setStatusCode(statusCode)
-                                .putHeader("Content-Type", "application/json")
-                                .end(result.encode());
-                    } else {
-                        respondError(ctx, ar.cause());
-                    }
-                });
+        dispatch(ctx, () -> sessionService.createDelivery(sessionId, body),
+                result -> writeWithEmbeddedStatus(ctx, result, 201));
     }
 
     private void handleCancelDelivery(final RoutingContext ctx) {
         final SessionId sessionId = SessionId.of(ctx.pathParam("sessionId"));
         final JsonObject body = ctx.body().asJsonObject();
         final String deliveryId = body == null ? null : body.getString("deliveryId");
-        vertx.executeBlocking(() -> sessionService.cancelDelivery(sessionId, deliveryId), false)
-                .onComplete(ar -> {
-                    if (ar.succeeded()) {
-                        final JsonObject result = ar.result();
-                        final int statusCode = result.containsKey("_statusCode")
-                                ? result.getInteger("_statusCode") : 200;
-                        result.remove("_statusCode");
-                        ctx.response().setStatusCode(statusCode)
-                                .putHeader("Content-Type", "application/json")
-                                .end(result.encode());
-                    } else {
-                        respondError(ctx, ar.cause());
-                    }
-                });
+        dispatch(ctx, () -> sessionService.cancelDelivery(sessionId, deliveryId),
+                result -> writeWithEmbeddedStatus(ctx, result, 200));
     }
 
     private void handleTrackDelivery(final RoutingContext ctx) {
         final SessionId sessionId = SessionId.of(ctx.pathParam("sessionId"));
         final JsonObject body = ctx.body().asJsonObject();
         final String deliveryId = body == null ? null : body.getString("deliveryId");
-        vertx.executeBlocking(() -> sessionService.trackDelivery(sessionId, deliveryId), false)
-                .onComplete(ar -> {
-                    if (ar.succeeded()) {
-                        ctx.response().setStatusCode(200)
-                                .putHeader("Content-Type", "application/json")
-                                .end(ar.result().encode());
-                    } else {
-                        respondError(ctx, ar.cause());
-                    }
-                });
+        dispatch(ctx, () -> sessionService.trackDelivery(sessionId, deliveryId),
+                result -> writeJson(ctx, 200, result));
     }
 
     private void handleGetDelivery(final RoutingContext ctx) {
         final SessionId sessionId = SessionId.of(ctx.pathParam("sessionId"));
         final String deliveryId = ctx.pathParam("deliveryId");
-        vertx.executeBlocking(() -> sessionService.getDelivery(sessionId, deliveryId), false)
-                .onComplete(ar -> {
-                    if (ar.succeeded()) {
-                        ar.result().ifPresentOrElse(
-                                delivery -> ctx.response().setStatusCode(200)
-                                        .putHeader("Content-Type", "application/json")
-                                        .end(delivery.encode()),
-                                () -> ctx.response().setStatusCode(404)
-                                        .end(new JsonObject().put("error", "Delivery not found").encode())
-                        );
-                    } else {
-                        respondError(ctx, ar.cause());
-                    }
-                });
+        dispatch(ctx, () -> sessionService.getDelivery(sessionId, deliveryId),
+                opt -> opt.ifPresentOrElse(
+                        delivery -> writeJson(ctx, 200, delivery),
+                        () -> writeJson(ctx, 404, new JsonObject().put("error", "Delivery not found"))));
     }
 
     private void handleViewFleet(final RoutingContext ctx) {
         final SessionId sessionId = SessionId.of(ctx.pathParam("sessionId"));
-        vertx.executeBlocking(() -> sessionService.viewFleet(sessionId), false)
-                .onComplete(ar -> {
-                    if (ar.succeeded()) {
-                        ctx.response().setStatusCode(200)
-                                .putHeader("Content-Type", "application/json")
-                                .end(ar.result().getJsonArray("fleet").encode());
-                    } else {
-                        respondError(ctx, ar.cause());
-                    }
-                });
+        dispatch(ctx, () -> sessionService.viewFleet(sessionId),
+                result -> writeJsonArray(ctx, result, "fleet"));
     }
 
     private void handleViewScheduling(final RoutingContext ctx) {
         final SessionId sessionId = SessionId.of(ctx.pathParam("sessionId"));
         final String droneId = ctx.queryParams().get("droneId");
-        vertx.executeBlocking(() -> sessionService.viewScheduling(sessionId, droneId), false)
+        dispatch(ctx, () -> sessionService.viewScheduling(sessionId, droneId),
+                result -> writeJsonArray(ctx, result, "scheduling"));
+    }
+
+    private <T> void dispatch(final RoutingContext ctx,
+                              final java.util.concurrent.Callable<T> serviceCall,
+                              final java.util.function.Consumer<T> onSuccess) {
+        vertx.executeBlocking(serviceCall, false)
                 .onComplete(ar -> {
                     if (ar.succeeded()) {
-                        ctx.response().setStatusCode(200)
-                                .putHeader("Content-Type", "application/json")
-                                .end(ar.result().getJsonArray("scheduling").encode());
+                        onSuccess.accept(ar.result());
                     } else {
                         respondError(ctx, ar.cause());
                     }
                 });
+    }
+
+    private void writeJson(final RoutingContext ctx, final int statusCode, final JsonObject body) {
+        ctx.response().setStatusCode(statusCode)
+                .putHeader("Content-Type", "application/json")
+                .end(body.encode());
+    }
+
+    private void writeWithEmbeddedStatus(final RoutingContext ctx, final JsonObject result,
+                                         final int defaultStatus) {
+        final int statusCode = result.containsKey("_statusCode")
+                ? result.getInteger("_statusCode") : defaultStatus;
+        result.remove("_statusCode");
+        writeJson(ctx, statusCode, result);
+    }
+
+    private void writeJsonArray(final RoutingContext ctx, final JsonObject wrapper, final String key) {
+        ctx.response().setStatusCode(200)
+                .putHeader("Content-Type", "application/json")
+                .end(wrapper.getJsonArray(key).encode());
     }
 
     private void respondError(final RoutingContext ctx, final Throwable cause) {
