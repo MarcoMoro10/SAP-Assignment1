@@ -4,9 +4,9 @@
 
 Personas:
 - **Sender**: a registered user who originates a delivery request.
-- **Admin**: an already-registered user with administrative privileges who monitors the fleet and **observes** delivery scheduling (the scheduling itself is automatic — see note below). The Admin account is pre-loaded (seed): it does not register, it only logs in.
+- **Admin**: an already-registered user with administrative privileges who monitors the fleet and **observes** delivery scheduling. The Admin account is pre-loaded: it does not register, it only logs in.
 
-> **Note on the drone.** In this prototype the drone is **not an external actor**. It is simulated internally by the delivery-service (a Virtual Thread per active drone), and its position/status updates are **internal domain events** of the Fleet Context (`Position Updated`, `Drone Arrived`, `Drone Out Of Service`), propagated in-process via the Observer pattern — not telemetry ingested over the network from an external device. There is therefore no "Drone" persona and no telemetry user story directed at an external system; the drone's behaviour is captured by the delivery lifecycle and fleet-monitoring stories below.
+> **Note on the drone.** In this prototype the drone is **not an external actor**. It is simulated internally by the delivery-service (a Virtual Thread per active drone), and its position/status updates are **internal domain events** of the Fleet Context (`Position Updated`, `Drone Arrived`, `Drone Out Of Service`), propagated in-process via the Observer pattern, not telemetry ingested over the network from an external device. There is therefore no "Drone" persona and no telemetry user story directed at an external system; the drone's behaviour is captured by the delivery lifecycle and fleet-monitoring stories below.
 
 ---
 
@@ -112,11 +112,11 @@ so that I can supervise fleet operations.
 
 ## Scheduling (Admin observes; the system schedules automatically)
 
-> **Note on scheduling.** Scheduling is **automatic**: a validated scheduled delivery is planned by the system (policies + a Vert.x timer *Scheduler* that triggers the assignment when the slot is due). The Admin does **not** create, move or reassign slots — the Admin's role on scheduling is **observational** (review the daily plan per drone). This reflects the frozen scope decision (no manual/in-flight reassignment).
+> **Note on scheduling.** Scheduling is **automatic**: a validated scheduled delivery is planned by the system. The Admin does **not** create, move or reassign slots, the Admin's role on scheduling is **observational**.
 
 ```
 As an Admin,
-I want to view the deliveries scheduled for each drone, ordered by pickup time,
+I want to view the deliveries scheduled for each drone,
 so that I have an overview of the planned daily route of every drone.
 ```
 
