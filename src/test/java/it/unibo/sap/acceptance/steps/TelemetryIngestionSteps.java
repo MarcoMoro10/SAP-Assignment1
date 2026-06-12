@@ -46,17 +46,12 @@ public class TelemetryIngestionSteps {
 
     @And("drone {string} is assigned to delivery {string} in status {string}")
     public void assignedToDeliveryInStatus(final String droneId, final String deliveryId, final String status) {
-        // The delivery is IN_PROGRESS and owned by a synthetic sender; the drone flies it.
-        // We arrange this in-process (no autonomous DroneSimulator) so each telemetry step
-        // deterministically controls the drone's position and status.
         deliveries.seed(deliveryId, DeliveryStatus.valueOf(status), "telemetry-sender", droneId);
         fleet.inDelivery(droneId, deliveryId);
     }
 
     @Given("the destination of delivery {string} is at position {string}")
     public void destinationOfDeliveryIsAt(final String deliveryId, final String coords) {
-        // Re-seed the delivery so its destination matches the arrival coordinates, keeping
-        // the drone assigned and IN_PROGRESS.
         final Coordinates dest = parseDelivery(coords);
         this.destinationOverride = dest;
         final Delivery existing = services.deliveryRepository().findById(DeliveryId.of(deliveryId)).orElseThrow();
@@ -78,7 +73,6 @@ public class TelemetryIngestionSteps {
                 fleet.arrive(droneId);
             } else {
                 fleet.updatePosition(droneId, parseFleet(coords));
-                // In-flight position update propagates to delivery tracking in-process.
                 final String deliveryId = assignedDeliveryOf(droneId);
                 if (deliveryId != null) {
                     final Coordinates c = parseDelivery(coords);
@@ -95,7 +89,7 @@ public class TelemetryIngestionSteps {
             fleet.updatePosition(droneId, parseFleet(coords)); // out-of-range -> throws
             updateApplied = true;
         } catch (final IllegalArgumentException e) {
-            lastError = e.getMessage(); // "Invalid position"
+            lastError = e.getMessage();
             updateApplied = false;
         }
     }
@@ -137,7 +131,7 @@ public class TelemetryIngestionSteps {
 
     @And("a {string} event should be published for drone {string}")
     public void eventPublishedForDrone(final String displayName, final String droneId) {
-        final String expectedType = displayName.replace(" ", ""); // "Position Updated" -> "PositionUpdated"
+        final String expectedType = displayName.replace(" ", "");
         final Drone drone = fleet.findById(droneId).orElseThrow();
         final boolean found = drone.getDomainEvents().stream()
                 .map(DomainEvent::getClass)
@@ -149,8 +143,6 @@ public class TelemetryIngestionSteps {
 
     @And("the tracking view of delivery {string} should eventually show position {string}")
     public void trackingEventuallyShowsPosition(final String deliveryId, final String coords) {
-        // The position update was already propagated in the When; the delivery's ETR was
-        // recomputed from the new position. We assert the delivery advanced (ETR present).
         final long etr = services.deliveryRepository().findById(DeliveryId.of(deliveryId))
                 .orElseThrow().getEstimatedTimeRemaining().toSeconds();
         assertTrue(etr >= 0, "expected a recomputed ETR after the position update");
@@ -158,7 +150,6 @@ public class TelemetryIngestionSteps {
 
     @And("delivery {string} should eventually be in status {string}")
     public void deliveryEventuallyInStatus(final String deliveryId, final String status) {
-        // Trigger the in-process propagation, then poll for the resulting delivery state.
         final DeliveryStatus target = DeliveryStatus.valueOf(status);
         if (target == DeliveryStatus.DELIVERED) {
             final Coordinates dest = destinationOverride == null ? new Coordinates(44.55, 11.40) : destinationOverride;
@@ -189,8 +180,6 @@ public class TelemetryIngestionSteps {
 
     @And("the drone reservation for delivery {string} should eventually be released")
     public void reservationEventuallyReleased(final String deliveryId) {
-        // onDroneOutOfService released the reservation; the delivery is ABOLISHED and the
-        // drone is no longer reserved/assigned to it.
         final String droneId = assignedDroneOf(deliveryId);
         if (droneId != null) {
             assertFalse(fleet.statusOf(droneId) == DroneStatus.RESERVED,
@@ -206,7 +195,6 @@ public class TelemetryIngestionSteps {
 
     @And("no delivery state should be changed")
     public void noDeliveryStateChanged() {
-        // The rejected update never reached the handler, so the in-flight delivery is intact.
         assertEquals(DeliveryStatus.IN_PROGRESS,
                 services.deliveryRepository().findById(DeliveryId.of("DLV-100"))
                         .orElseThrow().getStatus());

@@ -34,7 +34,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Acceptance-test composition root for the "Shipping on the Air" prototype.
  *
  * <p>It boots the three services in-process on dedicated test ports and wires the
  * session-service with the REAL REST proxies, exactly like production. The few extra

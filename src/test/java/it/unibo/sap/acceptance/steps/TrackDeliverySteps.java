@@ -49,9 +49,7 @@ public class TrackDeliverySteps {
         this.trackedDeliveryId = deliveryId;
         world.clearOutcome();
         try {
-            // First, register a tracking session (mirrors clicking "track").
             session.trackDelivery(world.sessionId(), deliveryId);
-            // Then read the tracking view (status + ETR) through the delivery GET endpoint.
             final Optional<JsonObject> view = session.getDelivery(world.sessionId(), deliveryId);
             if (view.isEmpty()) {
                 world.setLastError("Delivery not found");
@@ -69,8 +67,6 @@ public class TrackDeliverySteps {
 
     @When("the drone moves to a new position closer to the destination")
     public void droneMovesCloser() {
-        // Move DRN-1 onto (almost) the destination so the in-process handler recomputes a
-        // smaller ETR for the in-flight delivery, then re-read the tracking view.
         droneEvents.onDronePositionUpdated(trackedDeliveryId, 44.50, 11.35);
         final Optional<JsonObject> view = session.getDelivery(world.sessionId(), trackedDeliveryId);
         view.ifPresent(v -> this.trackingView = v);

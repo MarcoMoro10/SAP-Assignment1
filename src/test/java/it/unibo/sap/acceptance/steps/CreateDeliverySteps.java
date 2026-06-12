@@ -116,8 +116,6 @@ public class CreateDeliverySteps {
         world.clearOutcome();
         try {
             final JsonObject result = session.createDelivery(world.sessionId(), body);
-            // The delivery REST proxy returns the body plus "_statusCode"; an error body
-            // carries an "error" field and a non-2xx status code.
             if (result != null && result.containsKey("error")) {
                 world.setLastError(result.getString("error"));
             } else if (result != null && result.getInteger("_statusCode", 200) >= 400) {

@@ -60,7 +60,6 @@ public class SchedulingManagementSteps {
     public void allDronesReserved(final String time) {
         this.slot = LocalDateTime.of(LocalDateTime.now().toLocalDate(), LocalTime.parse(time));
         for (final var drone : fleet.all()) {
-            // Reserve the slot directly on each drone so none is free for that slot.
             fleet.reserveSlot(drone.getId().value(), "preexisting", slot);
         }
     }
@@ -74,8 +73,6 @@ public class SchedulingManagementSteps {
 
     @When("the system schedules it onto drone {string}")
     public void systemSchedulesOnto(final String droneId) {
-        // Make only the target drone free for the slot: reserve the slot on all the others,
-        // so the module's "first free that can carry" selection deterministically picks it.
         fleet.knownDrone(droneId, new Coordinates(44.49, 11.34));
         for (final var drone : fleet.all()) {
             if (!drone.getId().value().equals(droneId)) {

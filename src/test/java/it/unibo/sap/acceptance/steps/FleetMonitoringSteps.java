@@ -39,7 +39,6 @@ public class FleetMonitoringSteps {
 
     @Given("a drone {string} is in status {string} and is carrying a package")
     public void droneInStatusCarrying(final String droneId, final String status) {
-        // IN_DELIVERY carrying a package: assign and start a (synthetic) delivery.
         fleet.knownDrone(droneId, new Coordinates(44.49, 11.34));
         fleet.inDelivery(droneId, "DLV-MON");
         assertEquals(DroneStatus.valueOf("IN_DELIVERY"), fleet.statusOf(droneId));

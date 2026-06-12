@@ -57,7 +57,6 @@ public class NearestDroneAssignmentSteps {
 
     private void keepOnlyTheTwo() {
         if (pickup == null) {
-            // Pickup used by the create step is always "via Emilia, 9".
             final var dc = geocoder.geocode("via Emilia", 9);
             this.pickup = new Coordinates(dc.latitude(), dc.longitude());
             fleet.keepOnly(List.of("DRN-1", "DRN-2"));
@@ -65,7 +64,6 @@ public class NearestDroneAssignmentSteps {
     }
 
     private Coordinates atDistance(final double km) {
-        // Offset along longitude, clamped to the valid Bologna box (lon 11.28..11.40).
         double lon = pickup.longitude() + km * DEG_PER_KM;
         if (lon > 11.40) {
             lon = pickup.longitude() - km * DEG_PER_KM;
