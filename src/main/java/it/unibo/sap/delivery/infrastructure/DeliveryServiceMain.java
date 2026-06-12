@@ -8,7 +8,6 @@ import it.unibo.sap.delivery.application.DroneEventHandler;
 import it.unibo.sap.delivery.application.GeocodingPort;
 import it.unibo.sap.delivery.application.TrackingSessionEventObserver;
 import it.unibo.sap.delivery.application.TrackingSessionRegistry;
-import it.unibo.sap.delivery.application.fleet.FleetPort;
 import it.unibo.sap.delivery.infrastructure.fleet.DroneEventHandlerSink;
 import it.unibo.sap.delivery.infrastructure.fleet.FleetModule;
 import it.unibo.sap.delivery.infrastructure.fleet.FleetSeeder;

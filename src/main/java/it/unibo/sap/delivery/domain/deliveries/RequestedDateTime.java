@@ -25,7 +25,4 @@ public record RequestedDateTime(boolean immediate, LocalDateTime scheduledAt) im
         return immediate;
     }
 
-    public boolean isScheduled() {
-        return !immediate;
-    }
 }

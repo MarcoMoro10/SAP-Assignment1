@@ -155,7 +155,7 @@ public final class TestServices {
                 accountRepository.deleteById(account.getId());
             }
         }
-        AdminSeeder.seed(accountRepository); // ensure admin still present
+        AdminSeeder.seed(accountRepository);
     }
 
     private void startDeliveryService() {

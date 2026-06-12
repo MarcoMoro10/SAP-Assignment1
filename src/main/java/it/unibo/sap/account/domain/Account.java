@@ -58,10 +58,6 @@ public class Account implements AggregateRoot<AccountId> {
         return username.value();
     }
 
-    public Username getUsernameVO() {
-        return username;
-    }
-
     public String getPasswordHash() {
         return password.hash();
     }

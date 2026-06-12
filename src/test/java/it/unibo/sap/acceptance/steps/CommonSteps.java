@@ -14,7 +14,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CommonSteps {
@@ -23,8 +22,6 @@ public class CommonSteps {
     private final SessionService session = services.sessionService();
     private final World world = World.get();
     private final FleetTestFixture fleet = new FleetTestFixture(services.droneRepository());
-
-    // ---------- authentication ----------
 
     @Given("I am logged in as {string} with password {string}")
     public void iAmLoggedIn(final String username, final String password) {
@@ -42,21 +39,16 @@ public class CommonSteps {
         world.setRole(s.getRole());
     }
 
-    // ---------- generic error assertion (reused by create/cancel/track/etc.) ----------
-
     @Then("I should see the error {string}")
     public void shouldSeeError(final String message) {
         assertTrue(world.lastError().contains(message),
                 "expected error containing '" + message + "' but was: '" + world.lastError() + "'");
     }
 
-    // Shared across the scheduling and telemetry features.
     @io.cucumber.java.en.And("drone {string} should be in status {string}")
     public void droneShouldBeInStatus(final String droneId, final String status) {
         assertEquals(DroneStatus.valueOf(status), fleet.statusOf(droneId));
     }
-
-    // ---------- helpers ----------
 
     private void registerIfNeeded(final String username, final String password) {
         final CompletableFuture<Void> done = new CompletableFuture<>();

@@ -39,8 +39,6 @@ public class TelemetryIngestionSteps {
     private it.unibo.sap.delivery.domain.fleet.Coordinates lastKnownBefore;
     private Coordinates destinationOverride;
 
-    // ---------- Given ----------
-
     @Given("drone {string} is a known drone in the fleet")
     public void knownDrone(final String droneId) {
         fleet.knownDrone(droneId, new it.unibo.sap.delivery.domain.fleet.Coordinates(44.49, 11.34));
@@ -70,8 +68,6 @@ public class TelemetryIngestionSteps {
     public void knownDroneNoDelivery(final String droneId) {
         fleet.knownDrone(droneId, new it.unibo.sap.delivery.domain.fleet.Coordinates(44.49, 11.34));
     }
-
-    // ---------- When ----------
 
     @When("drone {string} updates its position to {string} with status {string}")
     public void updatesPositionWithStatus(final String droneId, final String coords, final String status) {
@@ -125,8 +121,6 @@ public class TelemetryIngestionSteps {
             }
         });
     }
-
-    // ---------- Then ----------
 
     @Then("the update should be applied")
     public void updateApplied() {
@@ -225,8 +219,6 @@ public class TelemetryIngestionSteps {
                         && close(now.longitude(), lastKnownBefore.longitude()),
                 "the rejected update must not have moved the drone");
     }
-
-    // ---------- helpers ----------
 
     private void apply(final Runnable action) {
         try {

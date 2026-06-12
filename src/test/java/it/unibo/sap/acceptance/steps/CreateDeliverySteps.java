@@ -11,7 +11,6 @@ import it.unibo.sap.acceptance.support.World;
 import it.unibo.sap.session.application.SessionService;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
