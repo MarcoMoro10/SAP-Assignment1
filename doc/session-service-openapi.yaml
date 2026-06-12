@@ -56,7 +56,7 @@ paths:
     post:
       tags:
         - delivery
-      summary: Create a delivery request (Sender)
+      summary: Create a delivery request
       description:
       operationId: createDelivery
       parameters:
@@ -74,7 +74,7 @@ paths:
               $ref: '#/components/schemas/CreateDeliveryRequest'
       responses:
         '201':
-          description: Delivery created (status ASSIGNED or SCHEDULED)
+          description: Delivery created (status IN_PROGRESS or SCHEDULED)
           content:
             application/json:
               schema:
@@ -116,7 +116,7 @@ paths:
     post:
       tags:
         - delivery
-      summary: Cancel a delivery before flight (Sender)
+      summary: Cancel a delivery before flight
       description:
       operationId: cancelDelivery
       parameters:
@@ -170,7 +170,7 @@ paths:
     post:
       tags:
         - delivery
-      summary: Start tracking a delivery (Sender) — command only
+      summary: Start tracking a delivery
       description:
       operationId: trackDelivery
       parameters:
@@ -211,7 +211,7 @@ paths:
     get:
       tags:
         - delivery
-      summary: Query a delivery's current state (Sender)
+      summary: Query a delivery's current state
       description:
       operationId: getDelivery
       parameters:
@@ -295,7 +295,7 @@ paths:
             type: string
       responses:
         '200':
-          description: Scheduled deliveries, ordered by pickup time
+          description: Scheduled deliveries
           content:
             application/json:
               schema:
@@ -339,7 +339,7 @@ components:
 
     DroneStatus:
       type: string
-      description: Canonical drone status (§10).
+      description:
       enum:
         - AVAILABLE
         - RESERVED

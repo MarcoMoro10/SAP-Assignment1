@@ -15,6 +15,7 @@
 - **Canonical state values**
   - **Delivery lifecycle (`DeliveryStatus`)**: `REQUESTED` → `VALIDATED` → `SCHEDULED` → `ASSIGNED` → `IN_PROGRESS` → `DELIVERED`; with the terminal off-paths `REJECTED` (validation failed), `CANCELLED` (withdrawn by the sender before flight) and `ABOLISHED` (forcibly terminated, e.g. drone out of service in flight)
     - `VALIDATED` is an **internal, transient** state: it is not observable by the sender and does not appear in the acceptance tests, because it immediately collapses into `ASSIGNED` (immediate delivery) or `SCHEDULED` (scheduled delivery), or into `REJECTED` on failure. It remains in the model as a logical step of the pipeline, not as a publicly asserted state.
+    - for an **immediate** delivery `ASSIGNED` is itself **transient**: the system assigns the nearest drone and `begin()`s the delivery within the same use case, so `createDelivery` already reports `IN_PROGRESS`. `ASSIGNED` therefore remains a real lifecycle state (and the cancellable state for a *scheduled* delivery, see below) but is never exposed by the API for an immediate request.
   - **Drone lifecycle (`DroneStatus`)**: `AVAILABLE`, `RESERVED`, `ASSIGNED`, `IN_DELIVERY`, `ARRIVED`, `OUT_OF_SERVICE`
   - these are the single source of truth for the state names used across the domain model, the event storming and the acceptance tests
 
@@ -113,7 +114,7 @@
   - the action by which the **system** schedules a validated delivery for its requested future slot, producing a **Delivery Scheduled** event
   - *(scheduling is **automatic**: it is driven by the system's policies and by the **Scheduler** — a Vert.x timer verticle that triggers the assignment when the slot is due. It is **not** an Admin command: the Admin only **observes** scheduling through the Delivery Scheduling View, see below.)*
 - **Delivery Scheduling View**
-  - the read model / view that lets an Admin observe the scheduled deliveries — which deliveries are planned, on which drone, in which slot — ordered by pickup time
+  - the read model / view that lets an Admin observe the scheduled deliveries — which deliveries are planned, on which drone, in which slot (no guaranteed ordering of the returned list)
   - it is a projection built from the delivery lifecycle (`Delivery Scheduled`, `Drone Reserved`, …); it is **read-only** and does not let the Admin alter the schedule
 - **To view the scheduling**
   - the **read-only** action an Admin performs to inspect the scheduled deliveries (the daily plan per drone) through the **Delivery Scheduling View**

@@ -98,15 +98,7 @@ paths:
       tags:
         - account
       summary: Authenticate an account by username (Sender or Admin)
-      description: |-
-        Single login endpoint shared by Sender and Admin. Login is performed by
-        username: since registration enforces username uniqueness (see the 409
-        on POST /accounts), a username identifies at most one account, so it can
-        be used as the login key. The Admin account is the pre-loaded;
-        it differs from a Sender only by its role. On success the response carries
-        the role, so that the downstream session-service can route the client
-        toward Sender features or Admin read-only views. This service does not
-        create or hold the session.
+      description:
       operationId: login
       requestBody:
         required: true
@@ -193,7 +185,7 @@ components:
         password:
           type: string
           format: password
-          description: Account password (write-only)
+          description: Account password
           example: "Secret#123"
 
     LoginResponse:

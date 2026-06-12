@@ -40,7 +40,7 @@ paths:
               $ref: '#/components/schemas/CreateDeliveryRequest'
       responses:
         '201':
-          description: Delivery created (ASSIGNED for immediate, SCHEDULED for scheduled)
+          description: Delivery created (IN_PROGRESS for immediate, SCHEDULED for scheduled)
           content:
             application/json:
               schema:
@@ -115,7 +115,7 @@ paths:
     post:
       tags:
         - delivery
-      summary: Cancel a delivery before flight (Sender)
+      summary: Cancel a delivery before flight
       description:
       operationId: cancelDelivery
       parameters:
@@ -260,7 +260,7 @@ paths:
             type: string
       responses:
         '200':
-          description: Scheduled deliveries, ordered by pickup time
+          description: Scheduled deliveries
           content:
             application/json:
               schema:
