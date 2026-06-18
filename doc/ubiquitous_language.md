@@ -8,7 +8,6 @@
 - **Drone Delivery Service**
   - the online system that allows registered users to request, schedule and track parcel deliveries performed by a fleet of autonomous drones
   - it is organized into three bounded contexts: **Users Context**, **Deliveries Context** and **Fleet Context**
-  - *(deployment note: the three logical contexts do not map one-to-one to deployment units. Users → account-service; Deliveries → delivery-service; **Fleet → a module inside the delivery-service**, not a separate service. A fourth applicative service, the session-service, orchestrates user sessions and routing. Bounded context ≠ deployment boundary.)*
 - **Read Model (projection)**
   - a query-optimized view (e.g. **Delivery Tracking View**, **Delivery Scheduling View**, **Fleet Monitoring View**) kept separate from the write model of an aggregate
   - read models are **projections** built and updated from domain events; this CQRS-like separation lets tracking and monitoring be served with low latency without loading the write side, and is a deliberate architectural choice rather than an incidental one
