@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 public class FileBasedDeliveryRepository implements DeliveryRepository, OutputAdapter {
 
@@ -91,7 +90,7 @@ public class FileBasedDeliveryRepository implements DeliveryRepository, OutputAd
             }
             final List<DeliveryRecord> records = store.values().stream()
                     .map(FileBasedDeliveryRepository::toRecord)
-                    .collect(Collectors.toList());
+                    .toList();
             mapper.writerWithDefaultPrettyPrinter().writeValue(file.toFile(), records);
         } catch (final IOException e) {
             throw new UncheckedIOException("Failed to persist deliveries to " + file, e);
