@@ -49,7 +49,13 @@ public class TrackDeliverySteps {
         this.trackedDeliveryId = deliveryId;
         world.clearOutcome();
         try {
-            session.trackDelivery(world.sessionId(), deliveryId);
+            final JsonObject trackResult = session.trackDelivery(world.sessionId(), deliveryId);
+            if (trackResult != null
+                    && (trackResult.containsKey("error")
+                        || trackResult.getInteger("_statusCode", 200) >= 400)) {
+                world.setLastError(trackResult.getString("error", "Delivery not found"));
+                return;
+            }
             final Optional<JsonObject> view = session.getDelivery(world.sessionId(), deliveryId);
             if (view.isEmpty()) {
                 world.setLastError("Delivery not found");

@@ -24,6 +24,10 @@ Feature: Track a delivery
     When I open the tracking page for delivery "DLV-200"
     Then I should see the error "Delivery not found"
 
+  Scenario: Tracking a delivery that does not exist returns an error
+    When I open the tracking page for delivery "DLV-DOES-NOT-EXIST"
+    Then I should see the error "Delivery not found"
+
   Scenario: Track a completed delivery
     Given I have a delivery "DLV-100" in status "DELIVERED"
     When I open the tracking page for delivery "DLV-100"

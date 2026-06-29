@@ -102,7 +102,7 @@ public class SessionServiceController extends AbstractVerticle implements InputA
         final JsonObject body = ctx.body().asJsonObject();
         final String deliveryId = body == null ? null : body.getString("deliveryId");
         dispatch(ctx, () -> sessionService.trackDelivery(sessionId, deliveryId),
-                result -> writeJson(ctx, 200, result));
+                result -> writeWithEmbeddedStatus(ctx, result, 201));
     }
 
     private void handleGetDelivery(final RoutingContext ctx) {
