@@ -69,24 +69,6 @@ public class DroneEventHandler {
         pushToTrackers(delivery, latitude, longitude, 0L);
     }
 
-    public void onDroneOutOfService(final String deliveryId, final String droneId) {
-        if (deliveryId == null) {
-            return;
-        }
-        final Optional<Delivery> found = deliveryRepository.findById(DeliveryId.of(deliveryId));
-        if (found.isEmpty()) {
-            return;
-        }
-        final Delivery delivery = found.get();
-        if (delivery.getStatus() != DeliveryStatus.IN_PROGRESS) {
-            return;
-        }
-        final LocalDateTime slot = delivery.getRequest().requestedDateTime().scheduledAt();
-        delivery.abolish();
-        deliveryRepository.save(delivery);
-        delivery.clearDomainEvents();
-        fleetPort.releaseReservation(droneId, deliveryId, slot);
-    }
 
     private EstimatedTimeRemaining computeEtr(final Coordinates current, final Coordinates destination) {
         final double distance = current.euclideanDistanceTo(destination);

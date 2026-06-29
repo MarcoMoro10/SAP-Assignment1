@@ -9,5 +9,4 @@ public enum DeliveryStatus {
     DELIVERED,
     REJECTED,
     CANCELLED,
-    ABOLISHED
 }

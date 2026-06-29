@@ -154,9 +154,6 @@ public class TelemetryIngestionSteps {
         if (target == DeliveryStatus.DELIVERED) {
             final Coordinates dest = destinationOverride == null ? new Coordinates(44.55, 11.40) : destinationOverride;
             handler.onDroneArrived(deliveryId, dest.latitude(), dest.longitude());
-        } else if (target == DeliveryStatus.ABOLISHED) {
-            final String droneId = assignedDroneOf(deliveryId);
-            handler.onDroneOutOfService(deliveryId, droneId);
         }
         assertEquals(target, pollDeliveryStatus(deliveryId, target));
     }

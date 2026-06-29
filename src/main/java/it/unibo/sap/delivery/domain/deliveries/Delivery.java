@@ -2,7 +2,6 @@ package it.unibo.sap.delivery.domain.deliveries;
 
 import it.unibo.sap.common.ddd.AggregateRoot;
 import it.unibo.sap.common.ddd.DomainEvent;
-import it.unibo.sap.delivery.domain.deliveries.events.DeliveryAbolished;
 import it.unibo.sap.delivery.domain.deliveries.events.DeliveryBegun;
 import it.unibo.sap.delivery.domain.deliveries.events.DeliveryCancelled;
 import it.unibo.sap.delivery.domain.deliveries.events.DeliveryCompleted;
@@ -113,12 +112,6 @@ public class Delivery implements AggregateRoot<DeliveryId> {
         }
         this.status = DeliveryStatus.CANCELLED;
         registerEvent(new DeliveryCancelled(id, Instant.now()));
-    }
-
-    public void abolish() {
-        requireStatus(DeliveryStatus.IN_PROGRESS, "abolish");
-        this.status = DeliveryStatus.ABOLISHED;
-        registerEvent(new DeliveryAbolished(id, Instant.now()));
     }
 
     public SenderId getSenderId() {
