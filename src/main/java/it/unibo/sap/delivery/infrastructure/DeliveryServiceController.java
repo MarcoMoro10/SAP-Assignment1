@@ -6,6 +6,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.core.http.ServerWebSocket;
 import it.unibo.sap.common.hexagonal.InputAdapter;
 import it.unibo.sap.delivery.application.CreateDeliveryCommand;
 import it.unibo.sap.delivery.application.CreateDeliveryResult;
@@ -18,6 +19,8 @@ import it.unibo.sap.delivery.application.TrackingHandle;
 import it.unibo.sap.delivery.domain.deliveries.DeliveryTrackingView;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 
 public class DeliveryServiceController extends AbstractVerticle implements InputAdapter {
 
@@ -63,9 +66,7 @@ public class DeliveryServiceController extends AbstractVerticle implements Input
             if (result.assignedDroneId() != null) {
                 reply.put("assignedDroneId", result.assignedDroneId());
             }
-            ctx.response().setStatusCode(201)
-                    .putHeader("Content-Type", "application/json")
-                    .end(reply.encode());
+            json(ctx, 201, reply);
         } catch (final BadRequestException e) {
             error(ctx, 400, e.getMessage());
         } catch (final ValidationRejectedException e) {
@@ -79,9 +80,7 @@ public class DeliveryServiceController extends AbstractVerticle implements Input
         final String deliveryId = ctx.pathParam("deliveryId");
         final String senderId = ctx.queryParams().get("senderId");
         deliveryService.getDelivery(deliveryId, senderId).ifPresentOrElse(
-                view -> ctx.response().setStatusCode(200)
-                        .putHeader("Content-Type", "application/json")
-                        .end(toJson(view).encode()),
+                view -> json(ctx, 200, toJson(view)),
                 () -> error(ctx, 404, "Delivery not found"));
     }
 
@@ -91,11 +90,9 @@ public class DeliveryServiceController extends AbstractVerticle implements Input
         final String senderId = body == null ? null : body.getString("senderId");
         try {
             deliveryService.cancelDelivery(deliveryId, senderId);
-            ctx.response().setStatusCode(200)
-                    .putHeader("Content-Type", "application/json")
-                    .end(new JsonObject()
-                            .put("deliveryId", deliveryId)
-                            .put("status", "CANCELLED").encode());
+            json(ctx, 200, new JsonObject()
+                    .put("deliveryId", deliveryId)
+                    .put("status", "CANCELLED"));
         } catch (final CannotCancelInFlightException e) {
             error(ctx, 409, e.getMessage());
         } catch (final DeliveryNotFoundException e) {
@@ -112,22 +109,30 @@ public class DeliveryServiceController extends AbstractVerticle implements Input
         try {
             final TrackingHandle handle = deliveryService.startTracking(deliveryId, senderId);
             final String wsUrl = "ws://localhost:" + port + "/api/v1/track/" + handle.trackingSessionId();
-            ctx.response().setStatusCode(201)
-                    .putHeader("Content-Type", "application/json")
-                    .end(new JsonObject()
-                            .put("trackingSessionId", handle.trackingSessionId())
-                            .put("deliveryId", handle.deliveryId())
-                            .put("webSocketUrl", wsUrl).encode());
+            json(ctx, 201, new JsonObject()
+                    .put("trackingSessionId", handle.trackingSessionId())
+                    .put("deliveryId", handle.deliveryId())
+                    .put("webSocketUrl", wsUrl));
         } catch (final DeliveryNotFoundException e) {
             error(ctx, 404, e.getMessage());
         }
     }
 
-    private void handleTrackingSocket(final io.vertx.core.http.ServerWebSocket webSocket) {
+    private void handleTrackingSocket(final ServerWebSocket webSocket) {
         if (!webSocket.path().startsWith("/api/v1/track/")) {
             webSocket.reject();
             return;
         }
+        final java.util.concurrent.atomic.AtomicReference<io.vertx.core.eventbus.MessageConsumer<Object>> consumerRef =
+                new java.util.concurrent.atomic.AtomicReference<>();
+
+        webSocket.closeHandler(v -> {
+            final io.vertx.core.eventbus.MessageConsumer<Object> consumer = consumerRef.getAndSet(null);
+            if (consumer != null) {
+                consumer.unregister();
+            }
+        });
+
         webSocket.textMessageHandler(openMsg -> {
             if (openMsg == null || openMsg.isBlank()) {
                 return;
@@ -146,9 +151,15 @@ public class DeliveryServiceController extends AbstractVerticle implements Input
                         .put("error", "Missing deliveryId").encode());
                 return;
             }
+            if (consumerRef.get() != null) {
+                return;
+            }
             final String address = VertxTrackingSessionEventObserver.TRACKING_ADDRESS_PREFIX + deliveryId;
-            vertx.eventBus().consumer(address, msg ->
-                    webSocket.writeTextMessage(((JsonObject) msg.body()).encode()));
+            final io.vertx.core.eventbus.MessageConsumer<Object> consumer = vertx.eventBus().consumer(address,
+                    msg -> webSocket.writeTextMessage(((JsonObject) msg.body()).encode()));
+            if (!consumerRef.compareAndSet(null, consumer)) {
+                consumer.unregister();
+            }
         });
     }
 
@@ -179,11 +190,11 @@ public class DeliveryServiceController extends AbstractVerticle implements Input
 
     private LocalDateTime parseDateTime(final String raw) {
         try {
-            return java.time.OffsetDateTime.parse(raw).toLocalDateTime();
-        } catch (final Exception ignored) {
+            return OffsetDateTime.parse(raw).toLocalDateTime();
+        } catch (final DateTimeParseException withOffset) {
             try {
                 return LocalDateTime.parse(raw);
-            } catch (final Exception e) {
+            } catch (final DateTimeParseException withoutOffset) {
                 throw new BadRequestException("Invalid shipping time");
             }
         }
@@ -203,8 +214,12 @@ public class DeliveryServiceController extends AbstractVerticle implements Input
     }
 
     private void error(final RoutingContext ctx, final int status, final String message) {
+        json(ctx, status, new JsonObject().put("error", message));
+    }
+
+    private void json(final RoutingContext ctx, final int status, final JsonObject payload) {
         ctx.response().setStatusCode(status)
                 .putHeader("Content-Type", "application/json")
-                .end(new JsonObject().put("error", message).encode());
+                .end(payload.encode());
     }
 }

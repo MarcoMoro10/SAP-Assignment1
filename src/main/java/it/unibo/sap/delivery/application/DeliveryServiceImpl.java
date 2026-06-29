@@ -92,9 +92,7 @@ public class DeliveryServiceImpl implements DeliveryService {
             throw new ValidationRejectedException(reason);
         }
         final String droneId = outcome.droneIdOpt().orElseThrow();
-        delivery.assignDrone(droneId);
-        delivery.begin();
-        fleetPort.startDelivery(droneId);
+        dispatchAssignedDrone(delivery, droneId);
         return new CreateDeliveryResult(delivery.getId().value(), delivery.getStatus().name(), droneId);
     }
 
@@ -168,9 +166,7 @@ public class DeliveryServiceImpl implements DeliveryService {
             final FleetAssignmentResult outcome = fleetPort.assignReservedDrone(d.getId().value(), slot);
             if (outcome.assigned()) {
                 final String droneId = outcome.droneIdOpt().orElseThrow();
-                d.assignDrone(droneId);
-                d.begin();
-                fleetPort.startDelivery(droneId);
+                dispatchAssignedDrone(d, droneId);
                 deliveryRepository.save(d);
                 d.clearDomainEvents();
             }
@@ -193,7 +189,7 @@ public class DeliveryServiceImpl implements DeliveryService {
                         d.getId().value(),
                         d.getRequest().requestedDateTime().scheduledAt(),
                         d.getStatus()))
-                .collect(java.util.stream.Collectors.toList());
+                .toList();
     }
 
     private Delivery loadOwned(final String deliveryId, final String senderId) {
@@ -211,6 +207,12 @@ public class DeliveryServiceImpl implements DeliveryService {
         } catch (final GeocodingPort.InvalidAddressException e) {
             throw new BadRequestException("Invalid address");
         }
+    }
+
+    private void dispatchAssignedDrone(final Delivery delivery, final String droneId) {
+        delivery.assignDrone(droneId);
+        delivery.begin();
+        fleetPort.startDelivery(droneId);
     }
 
     private Package buildParcel(final double weightKg) {
