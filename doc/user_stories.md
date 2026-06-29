@@ -90,7 +90,7 @@ I want to cancel a delivery request before it is in flight
 so that I can stop a shipment I no longer need.
 ```
 
-> **Scope note.** Cancellation covers both the *early* withdrawal of a request still in the request/validation phase (before any drone is reserved or assigned) and the *late* cancellation of a `SCHEDULED`/`ASSIGNED` delivery before its flight starts; the latter triggers the release of the drone reservation in the Fleet context. A delivery already `IN_PROGRESS` cannot be cancelled by the sender. The forced termination of an in-flight delivery (`ABOLISHED`) is **system-initiated**, not a sender action, and is therefore not modelled as a user story.
+> **Scope note.** Cancellation covers both the *early* withdrawal of a request still in the request/validation phase (before any drone is reserved or assigned) and the *late* cancellation of a `SCHEDULED`/`ASSIGNED` delivery before its flight starts; the latter triggers the release of the drone reservation in the Fleet context. A delivery already `IN_PROGRESS` cannot be cancelled by the sender. 
 
 ---
 
