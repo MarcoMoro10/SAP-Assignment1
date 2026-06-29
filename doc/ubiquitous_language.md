@@ -12,7 +12,7 @@
   - a query-optimized view (e.g. **Delivery Tracking View**, **Delivery Scheduling View**, **Fleet Monitoring View**) kept separate from the write model of an aggregate
   - read models are **projections** built and updated from domain events; this CQRS-like separation lets tracking and monitoring be served with low latency without loading the write side, and is a deliberate architectural choice rather than an incidental one
 - **Canonical state values**
-  - **Delivery lifecycle (`DeliveryStatus`)**: `REQUESTED` → `VALIDATED` → `SCHEDULED` → `ASSIGNED` → `IN_PROGRESS` → `DELIVERED`; with the terminal off-paths `REJECTED` (validation failed), `CANCELLED` (withdrawn by the sender before flight) and `ABOLISHED` (forcibly terminated, e.g. drone out of service in flight)
+  - **Delivery lifecycle (`DeliveryStatus`)**: `REQUESTED` → `VALIDATED` → `SCHEDULED` → `ASSIGNED` → `IN_PROGRESS` → `DELIVERED`; with the terminal off-paths `REJECTED` (validation failed) and `CANCELLED` (withdrawn by the sender before flight)
     - `VALIDATED` is an **internal, transient** state: it is not observable by the sender and does not appear in the acceptance tests, because it immediately collapses into `ASSIGNED` (immediate delivery) or `SCHEDULED` (scheduled delivery), or into `REJECTED` on failure. It remains in the model as a logical step of the pipeline, not as a publicly asserted state.
     - for an **immediate** delivery `ASSIGNED` is itself **transient**: the system assigns the nearest drone and `begin()`s the delivery within the same use case, so `createDelivery` already reports `IN_PROGRESS`. `ASSIGNED` therefore remains a real lifecycle state (and the cancellable state for a *scheduled* delivery, see below) but is never exposed by the API for an immediate request.
   - **Drone lifecycle (`DroneStatus`)**: `AVAILABLE`, `RESERVED`, `ASSIGNED`, `IN_DELIVERY`, `ARRIVED`, `OUT_OF_SERVICE`
@@ -88,11 +88,6 @@
   - the action a sender performs to cancel a delivery that has been **scheduled or assigned but has not yet started its flight** (late cancellation, status `SCHEDULED` or `ASSIGNED`)
   - it produces a **Delivery Cancelled** event and triggers the **release of the drone reservation** in the Fleet Context
   - a delivery already **in flight** (`IN_PROGRESS`) **cannot** be cancelled by the sender
-- **To abolish a delivery**
-  - the **system-initiated** termination of a delivery that is already **in flight** (`IN_PROGRESS`) and can no longer proceed, the prototype's only such cause is the **assigned drone going out of service mid-flight**
-  - it is *not* a sender action and is distinct from cancellation: it is the system's response to a failure, not a withdrawal
-  - it produces a **Delivery Abolished** event and moves the delivery to the terminal status `ABOLISHED`
-  - *(scope decision: in-flight reassignment to another drone is out of scope for the prototype, a drone failure simply abolishes the affected delivery)*
 - **To validate a delivery**
   - the action by which the system checks whether a delivery request can be accepted
   - the validation evaluates all the attributes carried by the delivery request, in particular:
@@ -127,13 +122,11 @@
   - **Whenever Position Updated, then recalculate the Estimated Time Remaining and emit Estimated Time Updated**
   - **Whenever Drone Assigned, then begin the delivery**
   - **Whenever Drone Arrived, then complete the delivery**
-  - **Whenever a Drone goes Out Of Service during a delivery in flight, then abolish that delivery**
   - **Whenever a sender cancels a scheduled or assigned delivery, then cancel the delivery and request the release of the drone reservation**
 - **Domain Events**
   - **Delivery Request Created**: a sender has issued a new delivery request
   - **Delivery Request Cancelled**: a delivery request has been withdrawn before any reservation/assignment (early cancellation)
   - **Delivery Cancelled**: a **scheduled or assigned** delivery has been cancelled **by the sender** before its flight started; it triggers the release of the drone reservation
-  - **Delivery Abolished**: an **in-flight** (`IN_PROGRESS`) delivery has been forcibly terminated by the system because the assigned drone went out of service; the delivery moves to `ABOLISHED` and the drone is marked unavailable
   - **Validation Delivery Passed**: a delivery request passed validation
   - **Validation Delivery Rejected**: a delivery request failed validation; this single event represents the rejection regardless of the failing condition (weight, route, time slot or deadline)
   - **Delivery Scheduled**: a validated delivery has been scheduled
@@ -171,7 +164,7 @@
   - it produces either a **Drone Reserved** event or a **No Drone Available For Slot** event
 - **To release a reservation**
   - the action by which the system frees a previously reserved slot, making the drone available again
-  - it is triggered when a scheduled/assigned delivery is **cancelled** by the sender, or when an in-flight delivery is **abolished** (assigned drone out of service)
+  - it is triggered when a scheduled/assigned delivery is **cancelled** by the sender
   - it produces a **Reservation Released** event
 - **To estimate delivery duration**
   - the action by which the system computes the expected duration of a delivery, producing a **Delivery Duration Estimated** event
@@ -184,8 +177,7 @@
   - **Whenever a delivery is scheduled, then reserve a slot**
   - **Whenever Validation Delivery Passed, then assign a drone**
   - **Whenever Validation Delivery Rejected, then reject the request**
-  - **Whenever a delivery is cancelled (by sender) or abolished (drone failure), then release the drone reservation**
-  - **Whenever a drone goes Out Of Service during a delivery in flight, then mark the drone unavailable and notify the Deliveries Context so it can abolish the delivery**
+  - **Whenever a delivery is cancelled (by sender), then release the drone reservation**
 - **Domain Events**
   - **Drone Availability Checked**: the availability of drones has been verified
   - **Drone Reserved**: a slot on a drone has been successfully reserved
@@ -197,4 +189,4 @@
   - **Status Updated**: the status of a drone has been updated (internally, by the DroneSimulator)
   - **Position Updated**: the position of a drone has been updated (internally, by the DroneSimulator)
   - **Drone Arrived**: the drone reached the delivery destination
-  - **Drone Out Of Service**: a drone became unavailable; if it occurs during a delivery, it causes that delivery to be abolished
+  - **Drone Out Of Service**: a drone became unavailable and can no longer be assigned deliveries
