@@ -20,6 +20,12 @@ Feature: Cancel a delivery request
     And the delivery "DLV-100" should be in status "CANCELLED"
     And the reserved drone slot should be released
 
+  Scenario: Cancelling a scheduled delivery returns the drone to AVAILABLE in the fleet monitoring view
+    Given I have a delivery "DLV-100" in status "SCHEDULED"
+    When I cancel the delivery "DLV-100"
+    Then I should see a confirmation that the delivery has been cancelled
+    And the admin fleet monitoring view should show drone "DRN-1" with status "AVAILABLE"
+
   Scenario: Cannot cancel a delivery already in flight
     Given I have a delivery "DLV-100" in status "IN_PROGRESS"
     When I cancel the delivery "DLV-100"

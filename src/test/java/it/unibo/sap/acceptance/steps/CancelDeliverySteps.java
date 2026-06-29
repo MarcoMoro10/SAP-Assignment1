@@ -4,6 +4,7 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import it.unibo.sap.acceptance.support.DeliveryFixtures;
 import it.unibo.sap.acceptance.support.FleetTestFixture;
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -93,6 +95,26 @@ public class CancelDeliverySteps {
     public void reservedSlotReleased() {
         assertNotEquals(DroneStatus.RESERVED, fleet.statusOf(SLOT_DRONE),
                 "the slot reservation should have been released");
+    }
+
+    @And("the admin fleet monitoring view should show drone {string} with status {string}")
+    public void adminFleetViewShowsDroneStatus(final String droneId, final String status) {
+        final Session admin = session.login("admin-1", "Admin#123");
+        final JsonObject result = session.viewFleet(admin.getId());
+        final JsonArray fleetView = result.getJsonArray("fleet");
+        assertNotNull(fleetView, "the fleet monitoring view returned no fleet array");
+        JsonObject drone = null;
+        for (int i = 0; i < fleetView.size(); i++) {
+            final JsonObject d = fleetView.getJsonObject(i);
+            if (droneId.equals(d.getString("droneId"))) {
+                drone = d;
+                break;
+            }
+        }
+        assertNotNull(drone, "drone " + droneId + " not present in the fleet monitoring view");
+        assertEquals(status, drone.getString("status"),
+                "after cancelling the delivery the Admin should see drone " + droneId
+                        + " as " + status + ", not stuck in its previous state");
     }
 
     private void arrangeFleetFor(final DeliveryStatus target, final String deliveryId) {

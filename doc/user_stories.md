@@ -108,6 +108,12 @@ I want to see the operational status of every drone, including whether it is car
 so that I can supervise fleet operations.
 ```
 
+```
+As an Admin,
+I want a drone whose scheduled delivery has been cancelled to be shown as AVAILABLE again in the fleet view
+so that the fleet overview reflects the real availability of every drone and the freed drone can be reused.
+```
+
 ---
 
 ## Scheduling (Admin observes; the system schedules automatically)
