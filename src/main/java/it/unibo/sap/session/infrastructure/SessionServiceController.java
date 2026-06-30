@@ -8,6 +8,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import it.unibo.sap.common.hexagonal.InputAdapter;
 import it.unibo.sap.session.application.SessionService;
+import it.unibo.sap.session.application.UpstreamServiceException;
 import it.unibo.sap.session.domain.Session;
 import it.unibo.sap.session.domain.SessionId;
 
@@ -164,6 +165,9 @@ public class SessionServiceController extends AbstractVerticle implements InputA
         if (cause instanceof SecurityException) {
             ctx.response().setStatusCode(403)
                     .end(new JsonObject().put("error", cause.getMessage()).encode());
+        } else if (cause instanceof UpstreamServiceException) {
+            ctx.response().setStatusCode(502)
+                    .end(new JsonObject().put("error", causeMessage(cause)).encode());
         } else {
             ctx.response().setStatusCode(404)
                     .end(new JsonObject().put("error", causeMessage(cause)).encode());

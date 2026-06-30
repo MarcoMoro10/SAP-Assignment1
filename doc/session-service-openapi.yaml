@@ -111,6 +111,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '502':
+          description: |-
+            Upstream service unavailable: the delivery-service could not be reached
+            or returned an unexpected status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "delivery-service is unreachable"
 
   /user-sessions/{sessionId}/cancel-delivery:
     post:
@@ -165,6 +175,16 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 error: "Delivery not found"
+        '502':
+          description: |-
+            Upstream service unavailable: the delivery-service could not be reached
+            or returned an unexpected status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "delivery-service is unreachable"
 
   /user-sessions/{sessionId}/track-delivery:
     post:
@@ -206,6 +226,16 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 error: "Delivery not found"
+        '502':
+          description: |-
+            Upstream service unavailable: the delivery-service could not be reached
+            or returned an unexpected status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "delivery-service is unreachable"
 
   /user-sessions/{sessionId}/deliveries/{deliveryId}:
     get:
@@ -238,6 +268,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '502':
+          description: |-
+            Upstream service unavailable: the delivery-service could not be reached
+            or returned an unexpected status. The fault is reported truthfully rather
+            than disguised as a 404.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "delivery-service is unreachable"
 
   /user-sessions/{sessionId}/admin/fleet:
     get:
@@ -273,6 +314,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '502':
+          description: |-
+            Upstream service unavailable: the delivery-service could not be reached
+            or returned an unexpected status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "delivery-service is unreachable"
 
   /user-sessions/{sessionId}/admin/scheduling:
     get:
@@ -314,6 +365,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '502':
+          description: |-
+            Upstream service unavailable: the delivery-service could not be reached
+            or returned an unexpected status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "delivery-service is unreachable"
 
 components:
   schemas:

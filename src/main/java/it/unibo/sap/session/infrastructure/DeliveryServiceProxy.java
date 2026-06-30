@@ -6,6 +6,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import it.unibo.sap.common.hexagonal.OutputAdapter;
 import it.unibo.sap.session.application.DeliveryService;
+import it.unibo.sap.session.application.UpstreamServiceException;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -49,7 +50,8 @@ public class DeliveryServiceProxy implements DeliveryService, OutputAdapter {
                 .addQueryParam("senderId", senderId)
                 .send(ar -> {
                     if (ar.failed()) {
-                        future.completeExceptionally(ar.cause());
+                        future.completeExceptionally(new UpstreamServiceException(
+                                "delivery-service is unreachable", ar.cause()));
                         return;
                     }
                     final int status = ar.result().statusCode();
@@ -58,7 +60,7 @@ public class DeliveryServiceProxy implements DeliveryService, OutputAdapter {
                     } else if (status == 404) {
                         future.complete(Optional.empty());
                     } else {
-                        future.completeExceptionally(new RuntimeException(
+                        future.completeExceptionally(new UpstreamServiceException(
                                 "delivery-service returned unexpected status " + status));
                     }
                 });
@@ -66,9 +68,9 @@ public class DeliveryServiceProxy implements DeliveryService, OutputAdapter {
             return future.get();
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted while contacting delivery-service", e);
+            throw new UpstreamServiceException("Interrupted while contacting delivery-service", e);
         } catch (final Exception e) {
-            throw new RuntimeException("Failed to contact delivery-service", e);
+            throw new UpstreamServiceException("Failed to contact delivery-service", e);
         }
     }
 
@@ -130,9 +132,9 @@ public class DeliveryServiceProxy implements DeliveryService, OutputAdapter {
             return future.get();
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted while contacting delivery-service", e);
+            throw new UpstreamServiceException("Interrupted while contacting delivery-service", e);
         } catch (final Exception e) {
-            throw new RuntimeException("Failed to contact delivery-service", e);
+            throw new UpstreamServiceException("Failed to contact delivery-service", e);
         }
     }
 }
