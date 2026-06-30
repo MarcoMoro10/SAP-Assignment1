@@ -48,19 +48,27 @@ public class DeliveryServiceProxy implements DeliveryService, OutputAdapter {
         webClient.get(port, host, "/api/v1/deliveries/" + deliveryId)
                 .addQueryParam("senderId", senderId)
                 .send(ar -> {
-                    if (ar.succeeded() && ar.result().statusCode() == 200) {
+                    if (ar.failed()) {
+                        future.completeExceptionally(ar.cause());
+                        return;
+                    }
+                    final int status = ar.result().statusCode();
+                    if (status == 200) {
                         future.complete(Optional.of(ar.result().bodyAsJsonObject()));
-                    } else {
+                    } else if (status == 404) {
                         future.complete(Optional.empty());
+                    } else {
+                        future.completeExceptionally(new RuntimeException(
+                                "delivery-service returned unexpected status " + status));
                     }
                 });
         try {
             return future.get();
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            return Optional.empty();
+            throw new RuntimeException("Interrupted while contacting delivery-service", e);
         } catch (final Exception e) {
-            return Optional.empty();
+            throw new RuntimeException("Failed to contact delivery-service", e);
         }
     }
 
